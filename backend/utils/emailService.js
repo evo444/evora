@@ -10,7 +10,7 @@ const nodemailer = require('nodemailer');
 
 let _transporter = null;
 
-function getTransporter() {
+async function getTransporter() {
   if (_transporter) return _transporter;
 
   const user = process.env.GMAIL_USER;
@@ -23,11 +23,23 @@ function getTransporter() {
     );
   }
 
+  // Resolve smtp.gmail.com to an explicit IPv4 address.
+  // Render's free tier lacks IPv6 routing, causing ENETUNREACH on AAAA records.
+  let smtpHost = 'smtp.gmail.com';
+  try {
+    const { promises: dnsPromises } = require('dns');
+    const [ipv4] = await dnsPromises.resolve4('smtp.gmail.com');
+    smtpHost = ipv4;
+    console.log(`📧 smtp.gmail.com resolved to ${ipv4} (IPv4)`);
+  } catch (e) {
+    console.warn('⚠️  Could not resolve smtp.gmail.com to IPv4, using hostname');
+  }
+
   _transporter = nodemailer.createTransport({
-    host: 'smtp.gmail.com',
+    host: smtpHost,
     port: 465,
     secure: true,
-    family: 4,           // force IPv4 — Render free tier blocks IPv6
+    tls: { servername: 'smtp.gmail.com' }, // validate TLS cert against hostname, not IP
     auth: { user, pass },
   });
 
@@ -36,7 +48,8 @@ function getTransporter() {
 
 async function verifyEmailTransport() {
   try {
-    await getTransporter().verify();
+    const t = await getTransporter();
+    await t.verify();
     console.log(`✅ Gmail SMTP ready (${process.env.GMAIL_USER})`);
   } catch (err) {
     console.warn('⚠️  Gmail SMTP verification failed:', err.message);
@@ -102,7 +115,8 @@ const sendOTPEmail = async (to, otp, purpose = 'verify') => {
 </html>`;
 
   try {
-    const info = await getTransporter().sendMail({
+    const transporter = await getTransporter();
+    const info = await transporter.sendMail({
       from: `"Evora Kerala Events" <${process.env.GMAIL_USER}>`,
       to,
       subject,
