@@ -26,13 +26,12 @@ router.post('/register/send-otp', async (req, res) => {
     await OTP.deleteMany({ email: email.toLowerCase(), purpose: 'verify' });
 
     const otp = generateOTP();
-    const hashedPassword = await bcrypt.hash(password, 12);
 
     await OTP.create({
       email: email.toLowerCase(),
       otp,
       purpose: 'verify',
-      userData: { name, password: hashedPassword },
+      userData: { name, password }, // Store PLAIN password temporarily, User.create will hash it
     });
 
     await sendOTPEmail(email, otp, 'verify');
@@ -50,16 +49,13 @@ router.post('/register/verify-otp', async (req, res) => {
     const record = await OTP.findOne({ email: email.toLowerCase(), purpose: 'verify', otp });
     if (!record) return res.status(400).json({ message: 'Invalid or expired OTP' });
 
-    // Create the user
+    // Create the user (pre-save hook in User.js will hash the password)
     const user = await User.create({
       name: record.userData.name,
       email: email.toLowerCase(),
       password: record.userData.password,
       approved: true,
     });
-
-    // Set password directly (bypass pre-save hash since we already hashed)
-    await User.findByIdAndUpdate(user._id, { password: record.userData.password });
 
     await OTP.deleteMany({ email: email.toLowerCase(), purpose: 'verify' });
 

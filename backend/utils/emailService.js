@@ -68,12 +68,20 @@ const sendOTPEmail = async (to, otp, purpose = 'verify') => {
   </body>
   </html>`;
 
-  await transporter.sendMail({
-    from: `"Evora 🌴" <${process.env.GMAIL_USER}>`,
-    to,
-    subject,
-    html,
-  });
+  try {
+    await transporter.sendMail({
+      from: `"Evora 🌴" <${process.env.GMAIL_USER}>`,
+      to,
+      subject,
+      html,
+    });
+  } catch (error) {
+    console.error('❌ Nodemailer Error:', error.message);
+    if (error.code === 'EAUTH') {
+      console.error('ℹ️ Hint: Check your GMAIL_USER and GMAIL_PASS (App Password).');
+    }
+    throw error; // Re-throw for auth.js to catch
+  }
 };
 
 module.exports = { generateOTP, sendOTPEmail };
