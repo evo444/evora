@@ -341,8 +341,8 @@ export default function HomePage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* ── Global Filter Bar ── */}
-        <div className="filter-bar mb-8 p-4 rounded-2xl border border-gray-100 dark:border-dark-border shadow-card">
-          <div className="flex flex-wrap gap-2 items-center">
+        <div className="filter-bar mb-8 p-3 sm:p-4 rounded-2xl border border-gray-100 dark:border-dark-border shadow-card overflow-x-auto">
+          <div className="flex gap-2 items-center min-w-max sm:min-w-0">
             {/* Liquid glass segmented control */}
             <div
               className="relative flex items-center rounded-full p-1"
@@ -389,11 +389,10 @@ export default function HomePage() {
               ))}
             </div>
 
-            {/* Spacer */}
-            <div className="flex-1" />
+            <div className="ml-auto" />
 
             {/* Glass pill filter selects */}
-            <div className="flex gap-2 flex-wrap items-center">
+            <div className="flex gap-2 items-center">
 
               {/* District / Place */}
               <GlassSelect

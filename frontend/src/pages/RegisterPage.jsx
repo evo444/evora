@@ -110,7 +110,7 @@ export default function RegisterPage() {
     try {
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 60000); // 60s max
-      await API.post('/api/auth/register/send-otp', {
+      const res = await API.post('/api/auth/register/send-otp', {
         name: form.name, email: form.email, password: form.password
       }, { signal: controller.signal });
       clearTimeout(timeout);

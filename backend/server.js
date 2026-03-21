@@ -43,7 +43,16 @@ app.options('/{*path}', cors(corsOptions)); // pre-flight (Express 5 wildcard sy
 // ── Socket.io ────────────────────────────────────────────────────────
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: (origin, cb) => {
+      if (!origin) return cb(null, true);
+      if (
+        envOrigins.includes(origin) ||
+        /^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin) ||
+        origin.startsWith('http://localhost') ||
+        origin.startsWith('http://127.0.0.1')
+      ) return cb(null, true);
+      cb(new Error(`CORS: origin ${origin} not allowed`));
+    },
     methods: ['GET', 'POST'],
     credentials: true,
   },
@@ -237,6 +246,9 @@ mongoose.connect(process.env.MONGO_URI, {
   .then(async () => {
     console.log('✅ MongoDB connected');
     await seedAdmin();
+    // Verify email transporter at startup so misconfiguration is caught early
+    const { verifyEmailTransport } = require('./utils/emailService');
+    await verifyEmailTransport();
     const PORT = process.env.PORT || 5000;
     server.listen(PORT, () => console.log(`🚀 Evora running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`));
   })
