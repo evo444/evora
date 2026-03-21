@@ -1,10 +1,5 @@
 /**
  * emailService.js — Gmail SMTP (works in both local dev and production)
- *
- * Setup:
- *   1. Enable 2FA on your Gmail account
- *   2. Generate an App Password → https://myaccount.google.com/apppasswords
- *   3. Set GMAIL_USER and GMAIL_PASS in .env (local) and Render dashboard (production)
  */
 const nodemailer = require('nodemailer');
 
@@ -23,24 +18,9 @@ async function getTransporter() {
     );
   }
 
-  // Resolve smtp.gmail.com to an explicit IPv4 address.
-  // Render's free tier lacks IPv6 routing, causing ENETUNREACH on AAAA records.
-  let smtpHost = 'smtp.gmail.com';
-  try {
-    const { promises: dnsPromises } = require('dns');
-    const [ipv4] = await dnsPromises.resolve4('smtp.gmail.com');
-    smtpHost = ipv4;
-    console.log(`📧 smtp.gmail.com resolved to ${ipv4} (IPv4)`);
-  } catch (e) {
-    console.warn('⚠️  Could not resolve smtp.gmail.com to IPv4, using hostname');
-  }
-
+  // Use the built-in 'gmail' service configuration
   _transporter = nodemailer.createTransport({
-    host: smtpHost,
-    port: 587,
-    secure: false,       // STARTTLS — port 587 is less likely to be blocked than 465
-    requireTLS: true,    // upgrade to TLS immediately
-    tls: { servername: 'smtp.gmail.com' },
+    service: 'gmail',
     auth: { user, pass },
   });
 
