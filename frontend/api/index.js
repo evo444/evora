@@ -14,8 +14,7 @@ const app = express();
 const server = http.createServer(app);
 
 // ── CORS ────────────────────────────────────────────────────────────
-// Split any comma-separated env origins AND always allow all *.vercel.app subdomains
-const envOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
   .split(',')
   .map(o => o.trim());
 
@@ -23,13 +22,7 @@ const corsOptions = {
   origin: (origin, cb) => {
     // Allow requests with no origin (mobile apps, curl, Render health checks)
     if (!origin) return cb(null, true);
-    // Allow any Vercel preview/production deployment or localhost
-    if (
-      envOrigins.includes(origin) ||
-      /^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin) ||
-      origin.startsWith('http://localhost') ||
-      origin.startsWith('http://127.0.0.1')
-    ) return cb(null, true);
+    if (allowedOrigins.includes(origin)) return cb(null, true);
     cb(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,
@@ -173,93 +166,32 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {});
 });
 
-// ── MongoDB + Boot ────────────────────────────────────────────────────
-const seedAdmin = async () => {
-  const User  = require('./models/User');
-  const Event = require('./models/Event');
-
-  const adminEmail    = process.env.ADMIN_EMAIL    || 'evora444@gmail.com';
-  const adminPassword = process.env.ADMIN_PASSWORD || 'admin123';
-
-  if (!(await User.findOne({ role: 'admin' }))) {
-    await User.create({ name: 'Admin', email: adminEmail, password: adminPassword, role: 'admin', approved: true });
-    console.log(`✅ Admin created: ${adminEmail}`);
-  }
-
-  if ((await Event.countDocuments()) === 0) {
-    const samples = [
-      {
-        name: 'Thrissur Pooram 2025',
-        description: 'The grandest temple festival in Kerala, featuring spectacular elephant processions, traditional music, and a mesmerizing fireworks display.',
-        shortDescription: 'Grandest temple festival with elephants and fireworks',
-        date: new Date('2025-04-15'), endDate: new Date('2025-04-16'),
-        location: { address: 'Vadakkunnathan Temple, Thrissur', district: 'Thrissur', lat: 10.5284, lng: 76.2144 },
-        category: 'Festival', crowd: 'high', attendees: 100000, trending: true,
-        averageRating: 4.9, totalRatings: 245, tags: ['temple','elephants','fireworks','traditional'],
-      },
-      {
-        name: 'Kerala Startup Summit',
-        description: "Kerala's largest technology and startup conference, bringing together entrepreneurs, investors, and innovators.",
-        shortDescription: 'Annual tech conference for startups and innovators',
-        date: new Date('2025-05-10'), endDate: new Date('2025-05-12'),
-        location: { address: 'Aspinwall House, Fort Kochi', district: 'Ernakulam', lat: 9.9658, lng: 76.2438 },
-        category: 'Tech', crowd: 'medium', attendees: 3000, trending: true,
-        averageRating: 4.5, totalRatings: 89,
-      },
-      {
-        name: 'Malabar Music Festival',
-        description: 'A three-day celebration of classical and folk music from Malabar region.',
-        shortDescription: 'Three-day classical and folk music celebration',
-        date: new Date('2025-06-20'), endDate: new Date('2025-06-22'),
-        location: { address: 'Town Hall, Kozhikode', district: 'Kozhikode', lat: 11.2588, lng: 75.7804 },
-        category: 'Music', crowd: 'medium', attendees: 5000,
-        averageRating: 4.7, totalRatings: 134,
-      },
-      {
-        name: 'Onam Food & Culture Fest',
-        description: "Celebrate Onam with grand Sadhya, Pulikali, Kathakali performances, and Pookalam competitions.",
-        shortDescription: 'Grand harvest festival with Sadhya, Kathakali, and Pookalam',
-        date: new Date('2025-08-27'), endDate: new Date('2025-09-05'),
-        location: { address: 'Sree Padmanabha Swamy Temple, Thiruvananthapuram', district: 'Thiruvananthapuram', lat: 8.487, lng: 76.9449 },
-        category: 'Cultural', crowd: 'high', attendees: 75000, trending: true,
-        averageRating: 4.6, totalRatings: 412,
-      },
-    ];
-    await Event.insertMany(samples);
-    console.log('✅ Sample events seeded');
-  }
-};
-
-mongoose.connect(process.env.MONGO_URI, {
-  serverSelectionTimeoutMS: 10000,
-  socketTimeoutMS: 45000,
-})
-  .then(async () => {
-    console.log('✅ MongoDB connected');
-    await seedAdmin();
-    const PORT = process.env.PORT || 5000;
-    server.listen(PORT, () => console.log(`🚀 Evora running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`));
-  })
-  .catch(err => {
-    console.error('❌ MongoDB connection failed:', err.message);
-    process.exit(1); // In production, fail fast so the process manager restarts
-  });
-
-// ── Graceful Shutdown ─────────────────────────────────────────────────
-const shutdown = (signal) => {
-  console.log(`\n${signal} received — shutting down gracefully`);
-  server.close(() => {
-    mongoose.connection.close(false, () => {
-      console.log('MongoDB disconnected. Process exiting.');
-      process.exit(0);
+// ── MongoDB Connection Singleton ──────────────────────────────────────
+let isConnected = false;
+const connectDB = async () => {
+  if (isConnected) return;
+  try {
+    await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 10000,
+      socketTimeoutMS: 45000,
     });
-  });
-  // Force exit after 10s if something hangs
-  setTimeout(() => process.exit(1), 10_000);
+    isConnected = true;
+    console.log('✅ MongoDB connected');
+  } catch (err) {
+    console.error('❌ MongoDB connection failed:', err.message);
+    throw err;
+  }
 };
-process.on('SIGTERM', () => shutdown('SIGTERM'));
-process.on('SIGINT',  () => shutdown('SIGINT'));
-process.on('uncaughtException',  (err) => { console.error('Uncaught Exception:', err); process.exit(1); });
-process.on('unhandledRejection', (err) => { console.error('Unhandled Rejection:', err); process.exit(1); });
 
-module.exports = { app, server };
+// Middleware to ensure DB connection
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (err) {
+    res.status(500).json({ message: 'Database connection failed' });
+  }
+});
+
+// ── Export for Vercel ──────────────────────────────────────────────────
+module.exports = app;

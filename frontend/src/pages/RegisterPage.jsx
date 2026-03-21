@@ -89,6 +89,7 @@ export default function RegisterPage() {
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  const [slowBackend, setSlowBackend] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
 
   const startResendTimer = () => {
@@ -103,16 +104,30 @@ export default function RegisterPage() {
     if (form.password !== form.confirm) { toast.error('Passwords do not match'); return; }
     if (form.password.length < 6) { toast.error('Password must be at least 6 characters'); return; }
     setLoading(true);
+    setSlowBackend(false);
+    // Show a hint after 8s if backend is slow (Render free tier cold start)
+    const slowTimer = setTimeout(() => setSlowBackend(true), 8000);
     try {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 60000); // 60s max
       await API.post('/api/auth/register/send-otp', {
         name: form.name, email: form.email, password: form.password
-      });
+      }, { signal: controller.signal });
+      clearTimeout(timeout);
       toast.success(`OTP sent to ${form.email}! Check your inbox 📧`);
       setStep(2);
       startResendTimer();
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to send OTP');
-    } finally { setLoading(false); }
+      if (err.name === 'CanceledError' || err.name === 'AbortError') {
+        toast.error('Server is taking too long. Please try again in a moment.');
+      } else {
+        toast.error(err.response?.data?.message || 'Failed to send OTP');
+      }
+    } finally {
+      clearTimeout(slowTimer);
+      setSlowBackend(false);
+      setLoading(false);
+    }
   };
 
   const handleVerifyOTP = async (e) => {
@@ -211,8 +226,21 @@ export default function RegisterPage() {
                     )}
                   </div>
                   <button type="submit" disabled={loading} className="btn-primary w-full py-3 disabled:opacity-60">
-                    {loading ? 'Sending OTP...' : '📧 Send Verification OTP'}
+                    {loading ? (
+                     <span className="flex items-center gap-2 justify-center">
+                       <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                       </svg>
+                       Sending OTP...
+                     </span>
+                   ) : '📧 Send Verification OTP'}
                   </button>
+                  {slowBackend && loading && (
+                    <p className="text-xs text-amber-600 dark:text-amber-400 text-center mt-2 animate-pulse">
+                      ⏳ Server is waking up (free tier)... Please wait ~30 seconds
+                    </p>
+                  )}
                 </form>
               </motion.div>
             ) : (
