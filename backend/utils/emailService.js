@@ -1,44 +1,34 @@
 /**
- * emailService.js — Gmail SMTP (works in both local dev and production)
+ * emailService.js — Resend API (HTTP-based, works on Render free tier)
+ *
+ * Why Resend instead of Gmail SMTP?
+ * Render's free tier blocks outbound SMTP ports (465, 587).
+ * Resend uses HTTPS (port 443) which is always open.
+ *
+ * Setup (2 min):
+ *   1. Go to https://resend.com → sign up free
+ *   2. API Keys → Create Key → copy it
+ *   3. Add RESEND_API_KEY to Render → Environment Variables
  */
-const nodemailer = require('nodemailer');
 
-let _transporter = null;
+const { Resend } = require('resend');
 
-async function getTransporter() {
-  if (_transporter) return _transporter;
+let _resend = null;
 
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_PASS;
-
-  if (!user || !pass) {
-    throw new Error(
-      `Missing email credentials: ${[!user && 'GMAIL_USER', !pass && 'GMAIL_PASS'].filter(Boolean).join(', ')}. ` +
-      'Set them in .env (local) or Render environment variables (production).'
-    );
-  }
-
-  // Use the built-in 'gmail' service configuration
-  _transporter = nodemailer.createTransport({
-    service: 'gmail',
-    auth: { user, pass },
-  });
-
-  return _transporter;
+function getResend() {
+  if (_resend) return _resend;
+  const key = process.env.RESEND_API_KEY;
+  if (!key) throw new Error('Missing RESEND_API_KEY. Add it to .env and Render Environment Variables.');
+  _resend = new Resend(key);
+  return _resend;
 }
 
 async function verifyEmailTransport() {
   try {
-    const t = await getTransporter();
-    await t.verify();
-    console.log(`✅ Gmail SMTP ready (${process.env.GMAIL_USER})`);
+    getResend(); // will throw if key missing
+    console.log('✅ Email: Resend API ready');
   } catch (err) {
-    console.warn('⚠️  Gmail SMTP verification failed:', err.message);
-    if (err.code === 'EAUTH') {
-      console.warn('   → Wrong credentials. Use a Gmail App Password, not your regular password.');
-      console.warn('   → Guide: https://myaccount.google.com/apppasswords');
-    }
-    _transporter = null;
+    console.warn('⚠️  Email:', err.message);
   }
 }
 
@@ -96,20 +86,26 @@ const sendOTPEmail = async (to, otp, purpose = 'verify') => {
 </html>`;
 
   try {
-    const transporter = await getTransporter();
-    const info = await transporter.sendMail({
-      from: `"Evora Kerala Events" <${process.env.GMAIL_USER}>`,
-      to,
+    const resend = getResend();
+    const { data, error } = await resend.emails.send({
+      from: 'Evora Kerala Events <onboarding@resend.dev>',
+      to: [to],
       subject,
       html,
     });
-    console.log(`📧 OTP sent to ${to} [${purpose}] — ${info.messageId}`);
-    return info;
+
+    if (error) {
+      console.error(`❌ Resend error to ${to}:`, error);
+      throw new Error(error.message || 'Resend API error');
+    }
+
+    console.log(`📧 OTP sent via Resend to ${to} [${purpose}] — id: ${data?.id}`);
+    return data;
   } catch (err) {
     console.error(`❌ Email failed to ${to}:`, err.message);
-    if (err.code === 'EAUTH')       console.error('   → Gmail auth failed. Check GMAIL_USER and GMAIL_PASS (App Password).');
-    if (err.code === 'ECONNECTION') console.error('   → Cannot reach Gmail SMTP. Check network.');
-    if (err.code === 'ETIMEDOUT')   console.error('   → SMTP connection timed out.');
+    if (err.message?.includes('RESEND_API_KEY')) {
+      console.error('   → Get a free key at https://resend.com and add RESEND_API_KEY to Render.');
+    }
     throw err;
   }
 };
