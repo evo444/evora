@@ -4,24 +4,24 @@ services:
     env: node
     region: singapore   # closest to Kerala
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install && npm install --prefix ../frontend --include=dev && npm run build --prefix ../frontend
     startCommand: node server.js
     healthCheckPath: /api/health
     envVars:
       - key: NODE_ENV
         value: production
       - key: PORT
-        value: 10000          # Render default port
+        value: 10000
       - key: MONGO_URI
-        sync: false           # set manually in Render dashboard
+        sync: false
       - key: JWT_SECRET
-        generateValue: false  # set manually
+        sync: false
       - key: FRONTEND_URL
-        sync: false           # set to your Vercel URL
-      - key: GMAIL_USER
         sync: false
-      - key: GMAIL_PASS
-        sync: false
+      - key: RESEND_API_KEY
+        sync: false           # set in Render dashboard
+      - key: VITE_API_URL
+        value: https://evora-api.onrender.com
       - key: ADMIN_EMAIL
         sync: false
       - key: ADMIN_PASSWORD
