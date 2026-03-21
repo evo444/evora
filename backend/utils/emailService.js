@@ -27,6 +27,7 @@ function getTransporter() {
     host: 'smtp.gmail.com',
     port: 465,
     secure: true,
+    family: 4,           // force IPv4 — Render free tier blocks IPv6
     auth: { user, pass },
   });
 
