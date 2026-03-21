@@ -1,0 +1,28 @@
+services:
+  - type: web
+    name: evora-api
+    env: node
+    region: singapore   # closest to Kerala
+    plan: free
+    buildCommand: npm install
+    startCommand: node server.js
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000          # Render default port
+      - key: MONGO_URI
+        sync: false           # set manually in Render dashboard
+      - key: JWT_SECRET
+        generateValue: false  # set manually
+      - key: FRONTEND_URL
+        sync: false           # set to your Vercel URL
+      - key: GMAIL_USER
+        sync: false
+      - key: GMAIL_PASS
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false

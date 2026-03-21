@@ -1,0 +1,38 @@
+# ── Dependencies ──────────────────────────────────────────────────────
+node_modules/
+dist/
+build/
+
+# ── Environment (never commit real secrets) ────────────────────────────
+.env
+.env.local
+.env.production
+
+# ── Uploads (user-uploaded images — back these up separately) ─────────
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# ── Logs ──────────────────────────────────────────────────────────────
+backend/logs/
+*.log
+
+# ── OS & Editor ───────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ── Misc ──────────────────────────────────────────────────────────────
+*.paint
+fix_events.js
+seed_images.js
+seed_images2.js
+
+mingit/
+
+
+mingit/
+node_modules/
+dist/
+.env
+
