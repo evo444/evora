@@ -6,35 +6,22 @@ export default defineConfig(({ mode }) => ({
 
   // ── Production build optimizations ────────────────────────────────
   build: {
-    // Target modern browsers (drops unnecessary polyfills)
     target: 'es2020',
-
-    // Warn if any single chunk exceeds 600 kB
     chunkSizeWarningLimit: 600,
-
+    cssCodeSplit: true,
+    assetsInlineLimit: 4096,
+    sourcemap: false,
     rollupOptions: {
       output: {
-        // Manual chunk splitting — separates heavy libs from app code.
-        // Allows browsers to cache vendor code independently.
         manualChunks: {
-          // React runtime — very stable, cached long-term
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          // Animation lib — large, changes infrequently
+          'vendor-react':  ['react', 'react-dom', 'react-router-dom'],
           'vendor-motion': ['framer-motion'],
-          // Map libs — very large, rarely change
-          'vendor-maps': ['leaflet', 'react-leaflet'],
-          // Real-time / API
-          'vendor-io': ['socket.io-client', 'axios'],
+          'vendor-maps':   ['leaflet', 'react-leaflet'],
+          'vendor-io':     ['socket.io-client', 'axios'],
         },
       },
     },
-
-    // Minify with esbuild (fast, default in Vite 5)
     minify: 'esbuild',
-
-    // Generate separate source maps in production for error tracking
-    // Set to false to reduce bundle size if you don't use Sentry/etc.
-    sourcemap: false,
   },
 
   // ── Dev server proxy — avoids CORS during local development ────────

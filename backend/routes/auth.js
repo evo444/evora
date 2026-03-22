@@ -34,8 +34,29 @@ router.post('/register/send-otp', async (req, res) => {
       userData: { name, password }, // Store PLAIN password temporarily, User.create will hash it
     });
 
-    await sendOTPEmail(email, otp, 'verify');
-    res.json({ message: 'OTP sent to your email!' });
+    // Try to send email. In development, fall back to console if Gmail fails.
+    let emailSent = false;
+    try {
+      await sendOTPEmail(email, otp, 'verify');
+      emailSent = true;
+    } catch (emailErr) {
+      if (process.env.NODE_ENV !== 'production') {
+        // Dev-mode fallback: print OTP to server console
+        console.log('\n' + '='.repeat(50));
+        console.log('📬 DEV MODE — Email failed, OTP printed below:');
+        console.log(`   Email : ${email}`);
+        console.log(`   OTP   : \x1b[33m\x1b[1m${otp}\x1b[0m`);
+        console.log('='.repeat(50) + '\n');
+      } else {
+        throw emailErr; // In production, propagate the error
+      }
+    }
+
+    res.json({
+      message: emailSent
+        ? 'OTP sent to your email!'
+        : `OTP sent! (DEV: check backend console — Gmail not configured)`,
+    });
   } catch (err) {
     console.error('Send OTP error:', err);
     res.status(500).json({ message: 'Failed to send OTP. Please try again.' });

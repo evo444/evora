@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Toaster } from 'react-hot-toast';
@@ -6,14 +6,28 @@ import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import HomePage from './pages/HomePage';
-import EventDetailPage from './pages/EventDetailPage';
-import LoginPage from './pages/LoginPage';
-import RegisterPage from './pages/RegisterPage';
-import AdminDashboard from './pages/AdminDashboard';
-import EventFormPage from './pages/EventFormPage';
-import SubmitEventPage from './pages/SubmitEventPage';
 
+// ── Lazy-load all pages — only downloaded when first visited ──────────
+const HomePage        = lazy(() => import('./pages/HomePage'));
+const EventDetailPage = lazy(() => import('./pages/EventDetailPage'));
+const LoginPage       = lazy(() => import('./pages/LoginPage'));
+const RegisterPage    = lazy(() => import('./pages/RegisterPage'));
+const AdminDashboard  = lazy(() => import('./pages/AdminDashboard'));
+const EventFormPage   = lazy(() => import('./pages/EventFormPage'));
+const SubmitEventPage = lazy(() => import('./pages/SubmitEventPage'));
+
+// Page-level loading spinner
+function PageSpinner() {
+  return (
+    <div className="min-h-screen flex items-center justify-center">
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ repeat: Infinity, duration: 0.8, ease: 'linear' }}
+        className="w-8 h-8 border-[3px] border-gray-900 dark:border-white border-t-transparent rounded-full"
+      />
+    </div>
+  );
+}
 
 const pageVariants = {
   initial: { opacity: 0, y: 16 },
@@ -96,7 +110,9 @@ function App() {
           <div className="min-h-screen bg-gray-50 dark:bg-dark-bg transition-colors duration-300 flex flex-col">
             <Navbar />
             <main className="flex-1">
-              <AppRoutes />
+              <Suspense fallback={<PageSpinner />}>
+                <AppRoutes />
+              </Suspense>
             </main>
             <Footer />
           </div>
