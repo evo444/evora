@@ -29,6 +29,7 @@ const corsOptions = {
     if (
       envOrigins.includes(origin) ||
       /^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin) ||
+      /^https:\/\/[a-z0-9-]+\.netlify\.app$/.test(origin) ||
       origin.startsWith('http://localhost') ||
       origin.startsWith('http://127.0.0.1')
     ) return cb(null, true);
@@ -50,6 +51,7 @@ const io = new Server(server, {
       if (
         envOrigins.includes(origin) ||
         /^https:\/\/[a-z0-9-]+\.vercel\.app$/.test(origin) ||
+        /^https:\/\/[a-z0-9-]+\.netlify\.app$/.test(origin) ||
         origin.startsWith('http://localhost') ||
         origin.startsWith('http://127.0.0.1')
       ) return cb(null, true);
