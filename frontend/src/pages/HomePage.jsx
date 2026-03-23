@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
+import ReactDOM from 'react-dom';
 import { motion, useAnimation } from 'framer-motion';
 import { Link, useSearchParams } from 'react-router-dom';
 import EventCard from '../components/EventCard';
@@ -8,23 +9,86 @@ import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import toast from 'react-hot-toast';
 
-/* ── Premium Glass Dropdown ── */
+/* ── Premium Glass Dropdown (Portal-based — immune to overflow clipping) ── */
 function GlassSelect({ icon, value, onChange, options, placeholder }) {
   const [open, setOpen] = useState(false);
-  const ref = useRef(null);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
+  const btnRef = useRef(null);
+  const panelRef = useRef(null);
   const selected = options.find(o => o.value === value);
 
+  // Close on outside click
   useEffect(() => {
-    const handler = (e) => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    if (!open) return;
+    const handler = (e) => {
+      if (
+        btnRef.current && !btnRef.current.contains(e.target) &&
+        panelRef.current && !panelRef.current.contains(e.target)
+      ) setOpen(false);
+    };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, []);
+  }, [open]);
+
+  // Position panel under the trigger button
+  const handleOpen = () => {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + window.scrollY + 6, left: r.left + window.scrollX, width: Math.max(r.width, 170) });
+    }
+    setOpen(o => !o);
+  };
+
+  const panel = open && ReactDOM.createPortal(
+    <motion.div
+      ref={panelRef}
+      initial={{ opacity: 0, y: -6, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -6, scale: 0.97 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+      style={{
+        position: 'absolute',
+        top: pos.top,
+        left: pos.left,
+        minWidth: pos.width,
+        zIndex: 99999,
+        background: 'rgba(255,255,255,0.92)',
+        backdropFilter: 'blur(24px)',
+        WebkitBackdropFilter: 'blur(24px)',
+        border: '1px solid rgba(255,255,255,0.6)',
+        borderRadius: 16,
+        boxShadow: '0 16px 48px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.08)',
+        overflow: 'hidden',
+      }}
+    >
+      {options.map((opt, i) => (
+        <button
+          key={opt.value ?? i}
+          onClick={() => { onChange(opt.value); setOpen(false); }}
+          className="w-full text-left px-4 py-2.5 text-sm font-medium transition-colors duration-150 flex items-center gap-2.5"
+          style={{
+            background: value === opt.value ? 'rgba(34,197,94,0.12)' : 'transparent',
+            color: value === opt.value ? '#15803d' : '#111318',
+            borderBottom: i < options.length - 1 ? '1px solid rgba(0,0,0,0.06)' : 'none',
+          }}
+          onMouseEnter={e => { if (value !== opt.value) e.currentTarget.style.background = 'rgba(0,0,0,0.05)'; }}
+          onMouseLeave={e => { if (value !== opt.value) e.currentTarget.style.background = 'transparent'; }}
+        >
+          {value === opt.value
+            ? <span className="text-green-500 text-xs font-bold">✓</span>
+            : <span className="w-4" />}
+          {opt.label}
+        </button>
+      ))}
+    </motion.div>,
+    document.body
+  );
 
   return (
-    <div ref={ref} className="relative" style={{ zIndex: 50 }}>
-      {/* Trigger pill */}
+    <div className="relative">
       <button
-        onClick={() => setOpen(o => !o)}
+        ref={btnRef}
+        onClick={handleOpen}
         className="flex items-center gap-2 rounded-full text-xs font-semibold transition-all duration-200 select-none"
         style={{
           padding: '7px 14px 7px 12px',
@@ -49,44 +113,7 @@ function GlassSelect({ icon, value, onChange, options, placeholder }) {
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
         </motion.svg>
       </button>
-
-      {/* Dropdown panel */}
-      {open && (
-        <motion.div
-          initial={{ opacity: 0, y: -8, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          transition={{ type: 'spring', stiffness: 380, damping: 30 }}
-          className="absolute mt-2 left-0 min-w-[170px] rounded-2xl overflow-hidden"
-          style={{
-            background: 'rgba(255,255,255,0.78)',
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
-            border: '1px solid rgba(255,255,255,0.55)',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.06)',
-          }}
-          data-glass-panel
-        >
-          {options.map((opt, i) => (
-            <button
-              key={opt.value}
-              onClick={() => { onChange(opt.value); setOpen(false); }}
-              className="w-full text-left px-4 py-2.5 text-sm font-medium transition-all duration-150 flex items-center gap-2.5"
-              style={{
-                background: value === opt.value ? 'rgba(34,197,94,0.12)' : 'transparent',
-                color: value === opt.value ? '#15803d' : 'inherit',
-                borderBottom: i < options.length - 1 ? '1px solid rgba(0,0,0,0.05)' : 'none',
-              }}
-              onMouseEnter={e => { if (value !== opt.value) e.currentTarget.style.background = 'rgba(0,0,0,0.05)'; }}
-              onMouseLeave={e => { if (value !== opt.value) e.currentTarget.style.background = 'transparent'; }}
-            >
-              {value === opt.value
-                ? <span className="text-green-500 text-xs">✓</span>
-                : <span className="w-4" />}
-              {opt.label}
-            </button>
-          ))}
-        </motion.div>
-      )}
+      {panel}
     </div>
   );
 }
@@ -341,8 +368,15 @@ export default function HomePage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* ── Global Filter Bar ── */}
-        <div className="filter-bar mb-8 p-3 sm:p-4 rounded-2xl border border-gray-100 dark:border-dark-border shadow-card overflow-x-auto">
-          <div className="flex gap-2 items-center min-w-max sm:min-w-0">
+        <div className="filter-bar mb-8 p-3 sm:p-4 rounded-2xl border border-gray-100 dark:border-dark-border shadow-card">
+          <div 
+            className="flex gap-2 items-center min-w-max sm:min-w-0 overflow-x-auto pb-1 scrollbar-none"
+            style={{ 
+              msOverflowStyle: 'none', 
+              scrollbarWidth: 'none',
+              WebkitOverflowScrolling: 'touch' 
+            }}
+          >
             {/* Liquid glass segmented control */}
             <div
               className="relative flex items-center rounded-full p-1"

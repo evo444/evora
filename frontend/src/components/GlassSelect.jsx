@@ -17,7 +17,7 @@ export default function GlassSelect({ value, onChange, options = [], placeholder
   const handleSelect = (opt) => { onChange(opt.value ?? opt.label); setOpen(false); };
 
   return (
-    <div ref={ref} className={`relative ${className}`} style={{ isolation: 'isolate' }}>
+    <div ref={ref} className={`relative ${className}`}>
 
       {/* ── Trigger Button ── */}
       <motion.button
@@ -73,7 +73,7 @@ export default function GlassSelect({ value, onChange, options = [], placeholder
             animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }}
             exit={{ opacity: 0, y: -6, scale: 0.96, rotateX: -4 }}
             transition={{ type: 'spring', stiffness: 400, damping: 30 }}
-            className="absolute z-[99] w-full mt-2 rounded-2xl overflow-hidden"
+            className="absolute z-[9999] w-full mt-2 rounded-2xl overflow-hidden"
             style={{
               /* Deep liquid glass panel */
               background: 'linear-gradient(160deg, rgba(255,255,255,0.28) 0%, rgba(255,255,255,0.10) 100%)',
