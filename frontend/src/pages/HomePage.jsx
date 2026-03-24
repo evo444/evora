@@ -15,6 +15,7 @@ function GlassSelect({ icon, value, onChange, options, placeholder }) {
   const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
   const btnRef = useRef(null);
   const panelRef = useRef(null);
+  const { darkMode } = useTheme();
   const selected = options.find(o => o.value === value);
 
   // Close on outside click
@@ -52,12 +53,14 @@ function GlassSelect({ icon, value, onChange, options, placeholder }) {
         left: pos.left,
         minWidth: pos.width,
         zIndex: 99999,
-        background: 'rgba(255,255,255,0.92)',
+        background: darkMode ? 'rgba(30,32,38,0.97)' : 'rgba(255,255,255,0.95)',
         backdropFilter: 'blur(24px)',
         WebkitBackdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255,255,255,0.6)',
+        border: darkMode ? '1px solid rgba(255,255,255,0.1)' : '1px solid rgba(255,255,255,0.6)',
         borderRadius: 16,
-        boxShadow: '0 16px 48px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.08)',
+        boxShadow: darkMode
+          ? '0 16px 48px rgba(0,0,0,0.5), 0 2px 8px rgba(0,0,0,0.3)'
+          : '0 16px 48px rgba(0,0,0,0.16), 0 2px 8px rgba(0,0,0,0.08)',
         overflow: 'hidden',
       }}
     >
@@ -67,12 +70,23 @@ function GlassSelect({ icon, value, onChange, options, placeholder }) {
           onClick={() => { onChange(opt.value); setOpen(false); }}
           className="w-full text-left px-4 py-2.5 text-sm font-medium transition-colors duration-150 flex items-center gap-2.5"
           style={{
-            background: value === opt.value ? 'rgba(34,197,94,0.12)' : 'transparent',
-            color: value === opt.value ? '#15803d' : '#111318',
-            borderBottom: i < options.length - 1 ? '1px solid rgba(0,0,0,0.06)' : 'none',
+            background: value === opt.value
+              ? 'rgba(34,197,94,0.15)'
+              : 'transparent',
+            color: value === opt.value
+              ? '#22c55e'
+              : darkMode ? '#e5e7eb' : '#111318',
+            borderBottom: i < options.length - 1
+              ? darkMode ? '1px solid rgba(255,255,255,0.07)' : '1px solid rgba(0,0,0,0.06)'
+              : 'none',
           }}
-          onMouseEnter={e => { if (value !== opt.value) e.currentTarget.style.background = 'rgba(0,0,0,0.05)'; }}
-          onMouseLeave={e => { if (value !== opt.value) e.currentTarget.style.background = 'transparent'; }}
+          onMouseEnter={e => {
+            if (value !== opt.value)
+              e.currentTarget.style.background = darkMode ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.05)';
+          }}
+          onMouseLeave={e => {
+            if (value !== opt.value) e.currentTarget.style.background = 'transparent';
+          }}
         >
           {value === opt.value
             ? <span className="text-green-500 text-xs font-bold">✓</span>
@@ -351,14 +365,14 @@ export default function HomePage() {
   return (
     <div className="min-h-screen">
       {/* Clean White Header — title only, search is in navbar */}
-      <div className="hero-section py-8 sm:py-10">
+      <div className="hero-section py-5 sm:py-10">
         <div className="max-w-4xl mx-auto text-center px-4">
           <motion.div initial={{opacity:0,y:-12}} animate={{opacity:1,y:0}} transition={{duration:0.45}}>
-            <span className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-2 block">🌍 Discover Kerala</span>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white leading-tight">
+            <span className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-1 block">🌍 Discover Kerala</span>
+            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white leading-tight">
               Every Event in Kerala
             </h1>
-            <p className="text-gray-500 dark:text-gray-400 text-base mt-3 max-w-lg mx-auto">
+            <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base mt-2 max-w-lg mx-auto">
               Festivals, concerts, cultural shows, tech meetups — all in one place.
             </p>
           </motion.div>
@@ -368,18 +382,14 @@ export default function HomePage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
 
         {/* ── Global Filter Bar ── */}
-        <div className="filter-bar mb-8 p-3 sm:p-4 rounded-2xl border border-gray-100 dark:border-dark-border shadow-card">
-          <div 
-            className="flex gap-2 items-center min-w-max sm:min-w-0 overflow-x-auto pb-1 scrollbar-none"
-            style={{ 
-              msOverflowStyle: 'none', 
-              scrollbarWidth: 'none',
-              WebkitOverflowScrolling: 'touch' 
-            }}
+        <div className="filter-bar mb-6 p-3 rounded-2xl border border-gray-100 dark:border-dark-border shadow-card">
+          {/* Row 1: Category pills */}
+          <div
+            className="flex gap-1.5 items-center overflow-x-auto pb-1 scrollbar-none"
+            style={{ msOverflowStyle: 'none', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
           >
-            {/* Liquid glass segmented control */}
             <div
-              className="relative flex items-center rounded-full p-1"
+              className="relative flex items-center rounded-full p-1 flex-shrink-0"
               style={{
                 background: 'rgba(255,255,255,0.18)',
                 backdropFilter: 'blur(16px)',
@@ -387,17 +397,15 @@ export default function HomePage() {
                 border: '1px solid rgba(255,255,255,0.35)',
                 boxShadow: '0 4px 24px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.5)',
               }}
-              // Dark mode override applied below via data attr + CSS
               data-glass-seg
             >
               {QUICK_FILTERS.map(f => (
                 <button
                   key={f.value}
                   onClick={() => { setCategory(f.value); setPage(1); }}
-                  className="relative px-7 py-2 text-sm font-semibold rounded-full transition-colors duration-200 focus:outline-none select-none"
-                  style={{ minWidth: 90, textAlign: 'center' }}
+                  className="relative px-4 sm:px-7 py-2 text-xs sm:text-sm font-semibold rounded-full transition-colors duration-200 focus:outline-none select-none"
+                  style={{ minWidth: 64, textAlign: 'center' }}
                 >
-                  {/* Sliding active pill */}
                   {category === f.value && (
                     <motion.div
                       layoutId="glass-seg-active"
@@ -422,61 +430,58 @@ export default function HomePage() {
                 </button>
               ))}
             </div>
+          </div>
 
-            <div className="ml-auto" />
+          {/* Row 2: Dropdown selects */}
+          <div className="flex gap-2 items-center flex-wrap mt-2.5">
 
-            {/* Glass pill filter selects */}
-            <div className="flex gap-2 items-center">
+            {/* District / Place */}
+            <GlassSelect
+              icon="📍"
+              placeholder="All Places"
+              value={district}
+              onChange={v => { setDistrict(v); setPage(1); }}
+              options={[
+                { value: '', label: 'All Places' },
+                ...[...new Set(events.map(e => e.location?.district).filter(Boolean))].sort()
+                  .map(d => ({ value: d, label: d })),
+              ]}
+            />
 
-              {/* District / Place */}
-              <GlassSelect
-                icon="📍"
-                placeholder="All Places"
-                value={district}
-                onChange={v => { setDistrict(v); setPage(1); }}
-                options={[
-                  { value: '', label: 'All Places' },
-                  ...[...new Set(events.map(e => e.location?.district).filter(Boolean))].sort()
-                    .map(d => ({ value: d, label: d })),
-                ]}
-              />
+            {/* Crowd */}
+            <GlassSelect
+              icon="👥"
+              placeholder="All Crowds"
+              value={crowd}
+              onChange={v => { setCrowd(v); setPage(1); }}
+              options={CROWD_LEVELS.map(c => ({
+                value: c,
+                label: c === 'All' ? 'All Crowds' : c.charAt(0).toUpperCase() + c.slice(1),
+              }))}
+            />
 
-              {/* Crowd */}
-              <GlassSelect
-                icon="👥"
-                placeholder="All Crowds"
-                value={crowd}
-                onChange={v => { setCrowd(v); setPage(1); }}
-                options={CROWD_LEVELS.map(c => ({
-                  value: c,
-                  label: c === 'All' ? 'All Crowds' : c.charAt(0).toUpperCase() + c.slice(1),
-                }))}
-              />
+            {/* Rating */}
+            <GlassSelect
+              icon="⭐"
+              placeholder="Any Rating"
+              value={minRating}
+              onChange={v => { setMinRating(v); setPage(1); }}
+              options={[
+                { value: '', label: 'Any Rating' },
+                { value: '3', label: '3+ Stars' },
+                { value: '4', label: '4+ Stars' },
+                { value: '4.5', label: '4.5+ Stars' },
+              ]}
+            />
 
-              {/* Rating */}
-              <GlassSelect
-                icon="⭐"
-                placeholder="Any Rating"
-                value={minRating}
-                onChange={v => { setMinRating(v); setPage(1); }}
-                options={[
-                  { value: '', label: 'Any Rating' },
-                  { value: '3', label: '3 + Stars' },
-                  { value: '4', label: '4 + Stars' },
-                  { value: '4.5', label: '4.5 + Stars' },
-                ]}
-              />
-
-              {/* Clear */}
-              {(search || category !== 'All' || crowd !== 'All' || minRating || district) && (
-                <motion.button
-                  initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                  onClick={resetFilters}
-                  className="text-xs font-semibold px-4 py-2 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors"
-                >× Clear</motion.button>
-              )}
-            </div>
-
+            {/* Clear */}
+            {(search || category !== 'All' || crowd !== 'All' || minRating || district) && (
+              <motion.button
+                initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                onClick={resetFilters}
+                className="text-xs font-semibold px-3 py-2 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors flex-shrink-0"
+              >× Clear</motion.button>
+            )}
           </div>
         </div>
 
@@ -567,8 +572,9 @@ export default function HomePage() {
               className="overflow-x-auto scroll-x pb-2"
               style={{
                 cursor: filteredWeekEvents.length > 3 ? 'grab' : 'default',
-                maskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 88%, transparent 100%)',
-                WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 5%, black 88%, transparent 100%)',
+                maskImage: 'linear-gradient(to right, transparent 0%, black 4%, black 90%, transparent 100%)',
+                WebkitMaskImage: 'linear-gradient(to right, transparent 0%, black 4%, black 90%, transparent 100%)',
+                scrollSnapType: 'x mandatory',
               }}
               onMouseEnter={e => {
                 const inner = e.currentTarget.querySelector('[data-marquee]');
