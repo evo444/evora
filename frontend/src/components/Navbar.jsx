@@ -167,9 +167,13 @@ export default function Navbar() {
               <div className="relative">
                 <button onClick={() => setProfileOpen(o => !o)}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-                  <div className="w-7 h-7 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 text-xs font-bold">
-                    {user.name[0].toUpperCase()}
-                  </div>
+                  {user.avatar ? (
+                    <img src={user.avatar} alt={user.name} className="w-7 h-7 rounded-full object-cover border border-gray-200 dark:border-gray-700" referrerPolicy="no-referrer" />
+                  ) : (
+                    <div className="w-7 h-7 rounded-full bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 text-xs font-bold">
+                      {user.name[0].toUpperCase()}
+                    </div>
+                  )}
                   <span className="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-300">{user.name.split(' ')[0]}</span>
                   <span className="text-gray-400 text-xs">▾</span>
                 </button>

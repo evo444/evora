@@ -6,6 +6,7 @@ import { eventService } from '../services/api';
 import GlassSelect from '../components/GlassSelect';
 import MapPicker from '../components/MapPicker';
 import DisclaimerModal from '../components/DisclaimerModal';
+import { useAuth } from '../contexts/AuthContext';
 
 const CATEGORY_OPTIONS = [
   { value: '', label: 'Select Category', icon: '📋' },
@@ -114,6 +115,8 @@ function ImageUploadZone({ images, onChange }) {
 
 export default function SubmitEventPage() {
   const navigate = useNavigate();
+  const { user, loginWithGoogle } = useAuth();
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(0);
@@ -121,7 +124,6 @@ export default function SubmitEventPage() {
   const [location, setLocation] = useState(null);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
-
   const [form, setForm] = useState({
     name: '', description: '', category: '',
     date: '', endDate: '', crowd: '',
@@ -129,6 +131,37 @@ export default function SubmitEventPage() {
     organizerName: '',
     organizerPhone: '', organizerEmail: '', website: '',
   });
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    try { await loginWithGoogle(); }
+    catch (err) { toast.error('Google sign-in failed'); }
+    finally { setGoogleLoading(false); }
+  };
+
+  // Login gate
+  if (!user) return (
+    <div className="min-h-[80vh] flex items-center justify-center px-4">
+      <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-sm w-full text-center">
+        <div className="card p-8">
+          <div className="text-5xl mb-4">🔐</div>
+          <h2 className="text-xl font-black text-gray-900 dark:text-white mb-2">Login Required</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Please login with Google to submit an event.</p>
+          <motion.button
+            onClick={handleGoogleLogin}
+            disabled={googleLoading}
+            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+            className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold text-sm transition-all shadow-sm hover:shadow-md disabled:opacity-60 mb-3"
+          >
+            {googleLoading ? <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg> : <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.4 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.4 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.1l-6.2-5.2C29.3 35.3 26.8 36 24 36c-5.3 0-9.7-3.1-11.3-7.6l-6.6 5.1C9.5 39.5 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.1-2.2 3.9-4 5.2l6.2 5.2C41.4 35.2 44 30 44 24c0-1.3-.1-2.7-.4-3.9z"/></svg>}
+            {googleLoading ? 'Signing in...' : 'Continue with Google'}
+          </motion.button>
+          <Link to="/login" className="text-sm text-accent hover:underline font-medium">Or sign in with email →</Link>
+        </div>
+      </motion.div>
+    </div>
+  );
+
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 

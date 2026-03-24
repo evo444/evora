@@ -9,6 +9,7 @@ const UserSchema = new mongoose.Schema({
   approved: { type: Boolean, default: false },
   bookmarks: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Event' }],
   avatar: { type: String, default: '' },
+  googleId: { type: String, default: '' },
   createdAt: { type: Date, default: Date.now }
 });
 

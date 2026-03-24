@@ -83,14 +83,28 @@ function PasswordInput({ value, onChange, placeholder = '•••••••�
 }
 
 export default function RegisterPage() {
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
-  const [step, setStep] = useState(1); // 1 = fill form, 2 = OTP
+  const [step, setStep] = useState(1);
   const [form, setForm] = useState({ name: '', email: '', password: '', confirm: '' });
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [slowBackend, setSlowBackend] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
+
+  const handleGoogleLogin = async () => {
+    setGoogleLoading(true);
+    try {
+      const u = await loginWithGoogle();
+      toast.success(`Welcome to Evora, ${u.name}! 🎉`);
+      navigate('/');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Google sign-in failed');
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   const startResendTimer = () => {
     setResendTimer(60);
@@ -190,8 +204,27 @@ export default function RegisterPage() {
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">We'll send a verification OTP to your email</p>
                 </div>
 
-                <div className="p-3 mb-5 bg-green-50 dark:bg-green-900/20 rounded-xl border border-green-100 dark:border-green-800/30">
-                  <p className="text-xs text-green-700 dark:text-green-400 font-medium">✅ Free to join — instant access after email verification</p>
+                {/* Google Sign-In — fast path */}
+                <motion.button
+                  type="button"
+                  onClick={handleGoogleLogin}
+                  disabled={googleLoading}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl border-2 border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-200 font-semibold text-sm transition-all shadow-sm hover:shadow-md disabled:opacity-60 mb-4"
+                >
+                  {googleLoading ? (
+                    <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/></svg>
+                  ) : (
+                    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.9 29.3 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.4 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.9z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.7 15.1 19 12 24 12c3.1 0 5.8 1.1 7.9 3l5.7-5.7C34.1 6.4 29.3 4 24 4 16.3 4 9.7 8.3 6.3 14.7z"/><path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.1l-6.2-5.2C29.3 35.3 26.8 36 24 36c-5.3 0-9.7-3.1-11.3-7.6l-6.6 5.1C9.5 39.5 16.3 44 24 44z"/><path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.1-2.2 3.9-4 5.2l6.2 5.2C41.4 35.2 44 30 44 24c0-1.3-.1-2.7-.4-3.9z"/></svg>
+                  )}
+                  {googleLoading ? 'Signing in...' : 'Continue with Google'}
+                </motion.button>
+
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
+                  <span className="text-xs text-gray-400 font-medium">or register with email</span>
+                  <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700" />
                 </div>
 
                 <form onSubmit={handleSendOTP} className="space-y-4">
