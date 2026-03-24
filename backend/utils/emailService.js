@@ -1,50 +1,39 @@
 /**
- * emailService.js — Gmail SMTP via Nodemailer
+ * emailService.js — Resend API for transactional email
  *
  * Setup:
- *   1. Go to Google Account → Security → 2-Step Verification → App Passwords
- *   2. Create an App Password for "Mail"
- *   3. Set GMAIL_USER and GMAIL_PASS in backend/.env
+ *   1. Sign up at https://resend.com (free tier: 3,000 emails/month)
+ *   2. Add & verify your domain OR use the sandbox address for testing
+ *   3. Create an API key and set RESEND_API_KEY in backend/.env on Render
+ *
+ * From address:
+ *   - With your own domain verified: "Evora <noreply@yourdomain.com>"
+ *   - Sandbox (no domain): "onboarding@resend.dev" (only delivers to the
+ *     address that owns the Resend account)
  */
 
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-function getTransporter() {
-  // Always create fresh in dev so .env changes are picked up without restart
-  const user = process.env.GMAIL_USER;
-  const pass = process.env.GMAIL_PASS;
-
-  if (!user || !pass) {
+function getResend() {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) {
     throw new Error(
-      'Missing GMAIL_USER or GMAIL_PASS in .env\n' +
-      '  GMAIL_USER=youraddress@gmail.com\n' +
-      '  GMAIL_PASS=xxxx xxxx xxxx xxxx  (Gmail App Password, 16 chars)\n' +
-      '  See: https://myaccount.google.com/apppasswords'
+      'Missing RESEND_API_KEY in environment variables.\n' +
+      '  Sign up at https://resend.com, create an API key, and set:\n' +
+      '  RESEND_API_KEY=re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'
     );
   }
-
-  return nodemailer.createTransport({
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true,          // SSL — Render allows 465, blocks 587
-    auth: { user, pass },
-    connectionTimeout: 15000,
-    greetingTimeout: 15000,
-    socketTimeout: 15000,
-  });
+  return new Resend(apiKey);
 }
 
+// Verify the Resend client is usable at startup (non-fatal)
 async function verifyEmailTransport() {
   try {
-    const t = getTransporter();
-    await t.verify();
-    console.log('✅ Email: Gmail SMTP ready');
+    const apiKey = process.env.RESEND_API_KEY;
+    if (!apiKey) throw new Error('RESEND_API_KEY not set');
+    console.log('✅ Email: Resend API key present');
   } catch (err) {
-    console.warn('⚠️  Email transport error:', err.message);
-    if (err.message.includes('Invalid login') || err.message.includes('EAUTH')) {
-      console.warn('   → Use a Gmail App Password (not your regular password).');
-      console.warn('   → https://myaccount.google.com/apppasswords');
-    }
+    console.warn('⚠️  Email setup warning:', err.message);
   }
 }
 
@@ -101,24 +90,27 @@ const sendOTPEmail = async (to, otp, purpose = 'verify') => {
 </body>
 </html>`;
 
+  // Determine the "from" address: use custom domain if set, else Resend sandbox
+  const fromAddress = process.env.RESEND_FROM_EMAIL || 'onboarding@resend.dev';
+
   try {
-    const transporter = getTransporter();
-    const info = await transporter.sendMail({
-      from: `"Evora Kerala Events" <${process.env.GMAIL_USER}>`,
+    const resend = getResend();
+    const { data, error } = await resend.emails.send({
+      from: `Evora Kerala Events <${fromAddress}>`,
       to,
       subject,
       html,
     });
 
-    console.log(`📧 OTP sent via Gmail to ${to} [${purpose}] — messageId: ${info.messageId}`);
-    return info;
+    if (error) {
+      console.error(`❌ Resend error to ${to}:`, error);
+      throw new Error(error.message || 'Resend API returned an error');
+    }
+
+    console.log(`📧 OTP sent via Resend to ${to} [${purpose}] — id: ${data?.id}`);
+    return data;
   } catch (err) {
     console.error(`❌ Email failed to ${to}:`, err.message);
-    if (err.code === 'EAUTH' || err.message.includes('Invalid login')) {
-      console.error('   → EAUTH: Gmail rejected the credentials.');
-      console.error('   → Make sure GMAIL_PASS is a 16-char App Password (not your Gmail password).');
-      console.error('   → Generate one at: https://myaccount.google.com/apppasswords');
-    }
     throw err;
   }
 };
