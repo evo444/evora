@@ -78,10 +78,10 @@ router.put('/submissions/:id/approve', protect, adminOnly, async (req, res) => {
   }
 });
 
-// DELETE /api/events/submissions/:id/reject — permanently delete a rejected submission
+// DELETE /api/events/submissions/:id/reject — permanently delete submission (admin confirmed)
 router.delete('/submissions/:id/reject', protect, adminOnly, async (req, res) => {
   try {
-    const event = await Event.findOneAndDelete({ _id: req.params.id, status: { $in: ['pending', 'rejected'] } });
+    const event = await Event.findByIdAndDelete(req.params.id);
     if (!event) return res.status(404).json({ message: 'Submission not found' });
     res.json({ message: 'Submission permanently deleted' });
   } catch (err) {
@@ -92,10 +92,7 @@ router.delete('/submissions/:id/reject', protect, adminOnly, async (req, res) =>
 // DELETE /api/events/submissions/:id — admin permanently removes a submission
 router.delete('/submissions/:id', protect, adminOnly, async (req, res) => {
   try {
-    const event = await Event.findOneAndDelete({
-      _id: req.params.id,
-      status: { $in: ['pending', 'rejected'] }
-    });
+    const event = await Event.findByIdAndDelete(req.params.id);
     if (!event) return res.status(404).json({ message: 'Submission not found' });
     res.json({ message: 'Submission deleted' });
   } catch (err) {
