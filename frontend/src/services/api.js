@@ -9,7 +9,7 @@ export const eventService = {
   submit: (formData) => API.post('/api/events/submit', formData, { headers: { 'Content-Type': 'multipart/form-data' } }).then(r => r.data),
   getSubmissions: () => API.get('/api/events/submissions').then(r => r.data),
   approveSubmission: (id) => API.put(`/api/events/submissions/${id}/approve`).then(r => r.data),
-  rejectSubmission: (id) => API.delete(`/api/events/submissions/${id}/reject`).then(r => r.data),
+  rejectSubmission: (id) => API.delete(`/api/events/submissions/${id}`).then(r => r.data),
 };
 
 export const commentService = {
