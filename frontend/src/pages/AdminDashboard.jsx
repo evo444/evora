@@ -61,12 +61,10 @@ function MapFly({ pos }) {
 }
 
 /* ── Full Submission Preview Modal ── */
-function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, allSubs = [] }) {
-  const [rejectReason, setRejectReason]   = useState('');
-  const [imgIndex,     setImgIndex]       = useState(0);
-  const [rejecting,    setRejecting]      = useState(false);
-  const [lightbox,     setLightbox]       = useState(null);   // full-screen image URL
-  const [markerPos,    setMarkerPos]      = useState(null);   // draggable marker {lat,lng}
+function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, onDeleteDuplicate, allSubs = [], dismissedDuplicates = [], onDismissDuplicate }) {
+  const [imgIndex,     setImgIndex]  = useState(0);
+  const [lightbox,     setLightbox]  = useState(null);
+  const [markerPos,    setMarkerPos] = useState(null);
 
   const images = sub?.images || [];
   const loc    = sub?.location || {};
@@ -98,9 +96,9 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, allSubs = [
   /* — Duplicate detection — */
   const duplicates = allSubs.filter(s =>
     s._id !== sub._id &&
-    s.status !== 'rejected' &&
+    !dismissedDuplicates.includes(s._id) &&
     s.name?.toLowerCase().trim() === sub.name?.toLowerCase().trim() &&
-    Math.abs(new Date(s.date) - new Date(sub.date)) < 86400000 * 3  // within 3 days
+    Math.abs(new Date(s.date) - new Date(sub.date)) < 86400000 * 7  // within 7 days
   );
 
   /* — Helpers — */
@@ -198,12 +196,32 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, allSubs = [
               {/* ── Validation Warnings ── */}
               {(warnings.length > 0 || duplicates.length > 0) && (
                 <div className="space-y-2">
-                  {duplicates.length > 0 && (
-                    <div className="flex gap-2 p-3 rounded-xl border bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-800/50 text-purple-700 dark:text-purple-300 text-sm">
-                      <span className="flex-shrink-0">🔁</span>
-                      <span><strong>Possible duplicate:</strong> {duplicates.length} similar event(s) with the same name found — {duplicates.map(d => `"${d.name}"`).join(', ')}. Verify before approving.</span>
+                  {duplicates.map(dup => (
+                    <div key={dup._id} className="rounded-xl border border-purple-200 dark:border-purple-800/50 bg-purple-50 dark:bg-purple-900/20 overflow-hidden">
+                      <div className="flex gap-2 p-3 text-sm text-purple-700 dark:text-purple-300">
+                        <span className="flex-shrink-0 text-base">🔁</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-bold">Possible duplicate detected</p>
+                          <p className="text-xs mt-0.5 opacity-80">Another submission with the same name exists: <strong>"{dup.name}"</strong> on {new Date(dup.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} by {dup.submittedBy?.name || 'Unknown'}</p>
+                        </div>
+                      </div>
+                      <div className="flex border-t border-purple-200 dark:border-purple-800/50">
+                        <button
+                          onClick={() => onDeleteDuplicate && onDeleteDuplicate(dup._id)}
+                          className="flex-1 py-2 text-xs font-bold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-all flex items-center justify-center gap-1.5"
+                        >
+                          🗑️ Delete that duplicate
+                        </button>
+                        <div className="w-px bg-purple-200 dark:bg-purple-800/50" />
+                        <button
+                          onClick={() => onDismissDuplicate && onDismissDuplicate(dup._id)}
+                          className="flex-1 py-2 text-xs font-bold text-purple-600 dark:text-purple-300 hover:bg-purple-100 dark:hover:bg-purple-900/40 transition-all flex items-center justify-center gap-1.5"
+                        >
+                          ✓ Not a duplicate
+                        </button>
+                      </div>
                     </div>
-                  )}
+                  ))}
                   {warnings.map((w, i) => (
                     <div key={i} className={`flex gap-2 p-3 rounded-xl border text-sm ${wBg[w.type]}`}>
                       <span>{w.msg}</span>
@@ -400,6 +418,7 @@ export default function AdminDashboard() {
   const [dbStats, setDbStats] = useState(null);
   const [loading, setLoading] = useState(true);
   const [previewSub, setPreviewSub] = useState(null);
+  const [dismissedDuplicates, setDismissedDuplicates] = useState([]);
 
   if (!isAdmin()) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -486,6 +505,16 @@ export default function AdminDashboard() {
     } catch { toast.error('Failed to delete'); }
   };
 
+  const deleteDuplicate = async (id) => {
+    if (!window.confirm('Delete this duplicate submission permanently?')) return;
+    try { await eventService.rejectSubmission(id); toast.success('Duplicate deleted 🗑️'); fetchData(); }
+    catch { toast.error('Failed to delete duplicate'); }
+  };
+  const dismissDuplicate = (id) => {
+    setDismissedDuplicates(prev => [...prev, id]);
+    toast.success('Marked as not a duplicate ✓');
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
@@ -496,6 +525,9 @@ export default function AdminDashboard() {
           onClose={() => setPreviewSub(null)}
           onApprove={approveSubmission}
           onReject={rejectSubmission}
+          onDeleteDuplicate={deleteDuplicate}
+          onDismissDuplicate={dismissDuplicate}
+          dismissedDuplicates={dismissedDuplicates}
           allSubs={submissions}
         />,
         document.body
@@ -634,10 +666,20 @@ export default function AdminDashboard() {
                       <div className="flex-1 p-4 min-w-0">
                         <div className="flex items-start justify-between gap-2 mb-1.5">
                           <h3 className="font-bold text-gray-900 dark:text-white leading-snug line-clamp-1">{sub.name}</h3>
-                          <span className={`badge text-xs flex-shrink-0 ${sub.status === 'pending' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' : 'bg-red-100 dark:bg-red-900/30 text-red-500'}`}>
-                            {sub.status === 'pending' ? '⏳ Pending' : '✕ Rejected'}
-                          </span>
-                        </div>
+                          <div className="flex gap-1 flex-shrink-0 flex-wrap justify-end">
+                            <span className={`badge text-xs ${sub.status === 'pending' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' : 'bg-red-100 dark:bg-red-900/30 text-red-500'}`}>
+                              {sub.status === 'pending' ? '⏳ Pending' : '✕ Rejected'}
+                            </span>
+                            {submissions.some(s =>
+                              s._id !== sub._id &&
+                              !dismissedDuplicates.includes(s._id) &&
+                              s.name?.toLowerCase().trim() === sub.name?.toLowerCase().trim() &&
+                              Math.abs(new Date(s.date) - new Date(sub.date)) < 86400000 * 7
+                            ) && (
+                              <span className="badge text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-300">🔁 Duplicate</span>
+                            )}
+                          </div>
+                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-2">{sub.description}</p>
                         <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-400 mb-3">
                           <span>🗂 {sub.category}</span>
