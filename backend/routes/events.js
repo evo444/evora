@@ -51,10 +51,10 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/events/submissions — admin sees pending/rejected submissions
+// GET /api/events/submissions — admin sees pending submissions only (rejected = permanently deleted)
 router.get('/submissions', protect, adminOnly, async (req, res) => {
   try {
-    const events = await Event.find({ status: { $in: ['pending', 'rejected'] } })
+    const events = await Event.find({ status: 'pending' })
       .populate('submittedBy', 'name email')
       .sort({ createdAt: -1 });
     res.json(events);
@@ -78,16 +78,12 @@ router.put('/submissions/:id/approve', protect, adminOnly, async (req, res) => {
   }
 });
 
-// PUT /api/events/submissions/:id/reject
-router.put('/submissions/:id/reject', protect, adminOnly, async (req, res) => {
+// DELETE /api/events/submissions/:id/reject — permanently delete a rejected submission
+router.delete('/submissions/:id/reject', protect, adminOnly, async (req, res) => {
   try {
-    const event = await Event.findByIdAndUpdate(
-      req.params.id,
-      { status: 'rejected', rejectionReason: req.body.reason || 'Not approved' },
-      { new: true }
-    );
-    if (!event) return res.status(404).json({ message: 'Event not found' });
-    res.json(event);
+    const event = await Event.findOneAndDelete({ _id: req.params.id, status: { $in: ['pending', 'rejected'] } });
+    if (!event) return res.status(404).json({ message: 'Submission not found' });
+    res.json({ message: 'Submission permanently deleted' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
