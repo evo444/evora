@@ -28,7 +28,17 @@ export default function LoginPage() {
       toast.success(`Welcome, ${u.name}! 👋`);
       navigate(u.role === 'admin' ? '/admin' : '/');
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Google sign-in failed. Please try again.');
+      // Firebase errors have a 'code' property; Axios errors have 'response'
+      const code = err?.code || '';
+      if (code === 'auth/popup-blocked') {
+        toast.error('Popup was blocked. Please allow popups for this site and try again.');
+      } else if (code === 'auth/unauthorized-domain') {
+        toast.error('This domain is not authorized for Google Sign-In. Contact the admin.');
+      } else if (code === 'auth/cancelled-popup-request' || code === 'auth/popup-closed-by-user') {
+        toast.error('Sign-in cancelled. Please try again.');
+      } else {
+        toast.error(err?.response?.data?.message || err?.message || 'Google sign-in failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
