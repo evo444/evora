@@ -135,7 +135,16 @@ router.post('/submit', protect, upload.array('images', 5), async (req, res) => {
 // POST /api/events — admin creates directly (approved)
 router.post('/', protect, adminOnly, upload.array('images', 10), async (req, res) => {
   try {
-    const images = req.files ? req.files.map(f => `/uploads/${f.filename}`) : [];
+    // Uploaded files take priority; fall back to URL strings passed in the JSON body
+    let images;
+    if (req.files && req.files.length > 0) {
+      images = req.files.map(f => `/uploads/${f.filename}`);
+    } else if (req.body.images) {
+      // Support both a single string and an array (JSON body or form-data)
+      images = Array.isArray(req.body.images) ? req.body.images : [req.body.images];
+    } else {
+      images = [];
+    }
     const locationData = typeof req.body.location === 'string' ? JSON.parse(req.body.location) : req.body.location;
     const event = await Event.create({ ...req.body, location: locationData, images, createdBy: req.user._id, status: 'approved' });
     res.status(201).json(event);
@@ -149,13 +158,22 @@ router.put('/:id', protect, adminOnly, upload.array('images', 10), async (req, r
   try {
     const event = await Event.findById(req.params.id);
     if (!event) return res.status(404).json({ message: 'Event not found' });
-    const newImages = req.files ? req.files.map(f => `/uploads/${f.filename}`) : [];
+    let newImages;
+    if (req.files && req.files.length > 0) {
+      // Newly uploaded files — append to existing
+      newImages = [...event.images, ...req.files.map(f => `/uploads/${f.filename}`)];
+    } else if (req.body.images) {
+      // URL strings passed in JSON body — replace images list
+      newImages = Array.isArray(req.body.images) ? req.body.images : [req.body.images];
+    } else {
+      // No new images supplied — preserve existing
+      newImages = event.images;
+    }
     const locationData = req.body.location
       ? (typeof req.body.location === 'string' ? JSON.parse(req.body.location) : req.body.location)
       : event.location;
     const updated = await Event.findByIdAndUpdate(req.params.id, {
-      ...req.body, location: locationData,
-      images: newImages.length > 0 ? [...event.images, ...newImages] : event.images
+      ...req.body, location: locationData, images: newImages
     }, { new: true });
     res.json(updated);
   } catch (err) {
