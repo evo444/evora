@@ -31,6 +31,21 @@ router.put('/users/:id/reject', protect, adminOnly, async (req, res) => {
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
 
+// PUT change user role — body: { role: 'admin' | 'user' }
+router.put('/users/:id/role', protect, adminOnly, async (req, res) => {
+  try {
+    const { role } = req.body;
+    if (!['admin', 'user'].includes(role)) {
+      return res.status(400).json({ message: 'role must be "admin" or "user"' });
+    }
+    const update = { role };
+    if (role === 'admin') update.approved = true; // admins are always approved
+    const user = await User.findByIdAndUpdate(req.params.id, update, { new: true }).select('-password');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+    res.json(user);
+  } catch (err) { res.status(500).json({ message: err.message }); }
+});
+
 // DELETE user
 router.delete('/users/:id', protect, adminOnly, async (req, res) => {
   try {
@@ -38,6 +53,7 @@ router.delete('/users/:id', protect, adminOnly, async (req, res) => {
     res.json({ message: 'User deleted' });
   } catch (err) { res.status(500).json({ message: err.message }); }
 });
+
 
 // GET analytics
 router.get('/analytics', protect, adminOnly, async (req, res) => {
