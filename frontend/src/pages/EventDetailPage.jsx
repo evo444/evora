@@ -24,7 +24,8 @@ import CrowdBadge from '../components/CrowdBadge';
 import StarRating, { StarDisplay } from '../components/StarRating';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5000';
+// Socket connects to the same server as the API (no separate VITE_SOCKET_URL needed)
+const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 function formatDate(d) {
   if (!d) return '';
@@ -84,24 +85,44 @@ export default function EventDetailPage() {
     load();
   }, [id, user]);
 
-  // Socket.io
+  // Socket.io — real-time comment sync from other users
+  // Uses the same URL as the REST API (Render backend)
   useEffect(() => {
-    socketRef.current = io(SOCKET_URL);
-    socketRef.current.emit('join_event', id);
-    socketRef.current.on('new_comment', (c) => setComments(prev => [c, ...prev]));
-    socketRef.current.on('delete_comment', ({ id: cid }) => setComments(prev => prev.filter(c => c._id !== cid)));
-    return () => { socketRef.current?.emit('leave_event', id); socketRef.current?.disconnect(); };
+    const socket = io(SOCKET_URL, {
+      transports: ['polling', 'websocket'], // polling first — works through Render's HTTP layer
+      reconnectionAttempts: 3,
+      timeout: 10000,
+    });
+    socketRef.current = socket;
+    socket.emit('join_event', id);
+    // Only add if not already shown (prevents duplicate from our own optimistic insert)
+    socket.on('new_comment', (c) => setComments(prev => {
+      if (prev.some(x => x._id === c._id)) return prev;
+      return [c, ...prev];
+    }));
+    socket.on('delete_comment', ({ id: cid }) => setComments(prev => prev.filter(c => c._id !== cid)));
+    return () => { socket.emit('leave_event', id); socket.disconnect(); };
   }, [id]);
 
   const submitComment = async (e) => {
     e.preventDefault();
     if (!user) { toast.error('Login to comment'); return; }
-    if (!newComment.trim()) return;
+    const text = newComment.trim();
+    if (!text) return;
     setSubmitting(true);
+    // Optimistic: clear input immediately so it feels instant
+    setNewComment('');
     try {
-      await commentService.create(id, newComment.trim());
-      setNewComment('');
+      const created = await commentService.create(id, text);
+      // Add the comment directly to the list.
+      // The socket may also broadcast it — deduplicate by _id.
+      setComments(prev => {
+        if (prev.some(c => c._id === created._id)) return prev;
+        return [created, ...prev];
+      });
     } catch (err) {
+      // Restore text on failure so user doesn't lose it
+      setNewComment(text);
       toast.error(err.response?.data?.message || 'Failed to post comment');
     } finally { setSubmitting(false); }
   };
