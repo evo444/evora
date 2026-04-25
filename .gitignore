@@ -7,6 +7,9 @@ build/
 .env
 .env.local
 .env.production
+# Allow frontend/.env.production — Firebase CLIENT keys are public-safe
+# (security is enforced by Firebase authorized domains, not key secrecy)
+!frontend/.env.production
 
 # ── Uploads (user-uploaded images — back these up separately) ─────────
 backend/uploads/*
