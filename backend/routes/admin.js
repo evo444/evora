@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Event = require('../models/Event');
 const Feedback = require('../models/Feedback');
 const { protect, adminOnly } = require('../middleware/auth');
+const { runScheduledFetch } = require('../utils/scheduler');
 
 // GET all users
 router.get('/users', protect, adminOnly, async (req, res) => {
@@ -321,7 +322,8 @@ router.post('/seed-kerala', protect, adminOnly, async (req, res) => {
       },
     ];
 
-    const inserted = await Event.insertMany(keralaEvents);
+    // Stamp addedBy:'AI' on every event so they appear in the AI tracking system
+    const inserted = await Event.insertMany(keralaEvents.map(e => ({ ...e, addedBy: 'AI' })));
     res.json({
       message: `✅ Successfully seeded ${inserted.length} Kerala temple events!`,
       count: inserted.length,
@@ -329,6 +331,86 @@ router.post('/seed-kerala', protect, adminOnly, async (req, res) => {
     });
   } catch (err) {
     console.error('Seed error:', err);
+    res.status(500).json({ message: err.message });
+  }
+});
+
+// ── AI Event Queue & Controls ─────────────────────────────────────────────
+
+/**
+ * GET /api/admin/ai-queue
+ * Returns all AI-added events awaiting admin review (status = pending, addedBy = AI).
+ * Supports pagination via ?page=1&limit=20 and filtering by status.
+ */
+router.get('/ai-queue', protect, adminOnly, async (req, res) => {
+  try {
+    const page   = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit  = Math.min(50, parseInt(req.query.limit) || 20);
+    const status = req.query.status || 'pending'; // pending | approved | rejected | all
+
+    const filter = { addedBy: 'AI' };
+    if (status !== 'all') filter.status = status;
+
+    const [events, total] = await Promise.all([
+      Event.find(filter)
+        .sort({ date: 1 })
+        .skip((page - 1) * limit)
+        .limit(limit)
+        .select('name category status date endDate location images crowd attendees trending tags addedBy createdAt'),
+      Event.countDocuments(filter),
+    ]);
+
+    const pendingCount  = await Event.countDocuments({ addedBy: 'AI', status: 'pending' });
+    const approvedCount = await Event.countDocuments({ addedBy: 'AI', status: 'approved' });
+    const rejectedCount = await Event.countDocuments({ addedBy: 'AI', status: 'rejected' });
+
+    res.json({
+      events,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+      summary: { pending: pendingCount, approved: approvedCount, rejected: rejectedCount },
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+/**
+ * POST /api/admin/ai-fetch
+ * Manually triggers the AI event fetcher — same logic as the weekly scheduler.
+ * Useful for testing or fetching immediately without waiting 7 days.
+ */
+router.post('/ai-fetch', protect, adminOnly, async (req, res) => {
+  try {
+    console.log(`[Admin] Manual AI fetch triggered by admin at ${new Date().toISOString()}`);
+    const count = await runScheduledFetch('admin-manual');
+    res.json({
+      message: count > 0
+        ? `✅ ${count} new Kerala temple event(s) added for review.`
+        : 'ℹ️  No new events — all upcoming events are already in the database.',
+      newEvents: count,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+/**
+ * GET /api/admin/ai-stats
+ * Quick stats about AI-added events in the database.
+ */
+router.get('/ai-stats', protect, adminOnly, async (req, res) => {
+  try {
+    const [total, pending, approved, rejected, upcoming] = await Promise.all([
+      Event.countDocuments({ addedBy: 'AI' }),
+      Event.countDocuments({ addedBy: 'AI', status: 'pending' }),
+      Event.countDocuments({ addedBy: 'AI', status: 'approved' }),
+      Event.countDocuments({ addedBy: 'AI', status: 'rejected' }),
+      Event.countDocuments({ addedBy: 'AI', status: 'approved', date: { $gte: new Date() } }),
+    ]);
+    const nextEvent = await Event.findOne({ addedBy: 'AI', status: 'approved', date: { $gte: new Date() } })
+      .sort({ date: 1 }).select('name date location.district');
+    res.json({ total, pending, approved, rejected, upcoming, nextEvent });
+  } catch (err) {
     res.status(500).json({ message: err.message });
   }
 });

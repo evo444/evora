@@ -276,6 +276,9 @@ mongoose.connect(process.env.MONGO_URI, {
     // Verify email transporter at startup so misconfiguration is caught early
     const { verifyEmailTransport } = require('./utils/emailService');
     await verifyEmailTransport();
+    // ── Start weekly AI temple event scheduler ──────────────────────────────────────
+    const { startScheduler } = require('./utils/scheduler');
+    startScheduler();
     const PORT = process.env.PORT || 5000;
     server.listen(PORT, () => console.log(`🚀 Evora running on port ${PORT} [${process.env.NODE_ENV || 'development'}]`));
   })
@@ -287,6 +290,8 @@ mongoose.connect(process.env.MONGO_URI, {
 // ── Graceful Shutdown ─────────────────────────────────────────────────
 const shutdown = (signal) => {
   console.log(`\n${signal} received — shutting down gracefully`);
+  // Stop the AI event scheduler cleanly
+  try { require('./utils/scheduler').stopScheduler(); } catch (_) {}
   server.close(() => {
     mongoose.connection.close(false, () => {
       console.log('MongoDB disconnected. Process exiting.');

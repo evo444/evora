@@ -462,18 +462,21 @@ async function seed() {
   console.log('✅ Connected.');
 
   // Check for existing AI-seeded events to avoid duplicates
-  const existing = await Event.countDocuments({ tags: 'AI' });
+  const existing = await Event.countDocuments({ addedBy: 'AI' });
   if (existing > 0) {
-    console.log(`⚠️  Found ${existing} existing AI-seeded events in the database.`);
-    console.log('   To re-seed, first delete them: db.events.deleteMany({ tags: "AI" })');
+    console.log(`⚠️  Found ${existing} existing AI-tagged events in the database.`);
+    console.log('   To re-seed, first delete them: db.events.deleteMany({ addedBy: "AI" })');
     await mongoose.disconnect();
     return;
   }
 
-  console.log(`📥 Inserting ${events.length} Kerala temple events...`);
-  const inserted = await Event.insertMany(events);
+  // Stamp addedBy:'AI' on every seeded event so they're properly tracked
+  const eventsWithTag = events.map(e => ({ ...e, addedBy: 'AI' }));
+
+  console.log(`📥 Inserting ${eventsWithTag.length} Kerala temple events...`);
+  const inserted = await Event.insertMany(eventsWithTag);
   console.log(`✅ Successfully inserted ${inserted.length} events!`);
-  console.log('   Events tagged with "AI" for identification.');
+  console.log('   Events stamped with addedBy: "AI" for identification.');
 
   inserted.forEach(e => console.log(`   ✓ ${e.name}`));
 

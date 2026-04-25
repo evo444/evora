@@ -36,7 +36,9 @@ const EventSchema = new mongoose.Schema({
   rejectionReason: { type: String },
   averageRating: { type: Number, default: 0 },
   totalRatings: { type: Number, default: 0 },
-  tags: [{ type: String }]
+  tags: [{ type: String }],
+  // Who added this event: 'user' (self-submitted), 'admin' (manually added), 'AI' (weekly scheduler)
+  addedBy: { type: String, enum: ['user', 'admin', 'AI'], default: 'user' },
 }, { timestamps: true });
 
 // ── Indexes for production query performance ──────────────────────────
@@ -52,5 +54,7 @@ EventSchema.index({ status: 1, trending: 1, date: -1 });
 EventSchema.index({ name: 'text', description: 'text', 'location.address': 'text' });
 // Admin dashboard: submissions by status
 EventSchema.index({ status: 1, createdAt: -1 });
+// AI queue: pending events added by AI
+EventSchema.index({ addedBy: 1, status: 1, date: 1 });
 
 module.exports = mongoose.model('Event', EventSchema);

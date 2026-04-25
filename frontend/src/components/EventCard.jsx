@@ -57,8 +57,13 @@ export default function EventCard({ event, index = 0, onDelete, onToggleTrending
             src={imageUrl}
             alt={event.name}
             loading="lazy"
+            crossOrigin="anonymous"
             className="w-full h-full object-cover"
             onLoad={e => e.currentTarget.classList.add('img-loaded')}
+            onError={e => {
+              // If the external image fails to load, hide it to show the gradient placeholder
+              e.currentTarget.style.display = 'none';
+            }}
             style={{ opacity: 0, transition: 'opacity 0.4s ease', willChange: 'transform' }}
             whileHover={{ scale: 1.07 }}
             transition={{ ...spring, stiffness: 260, damping: 22 }}

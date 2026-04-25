@@ -7,3 +7,14 @@
   from   = "/*"
   to     = "/index.html"
   status = 200
+
+# Security & CORS headers
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    # Allow images from Wikimedia, our own API, and data URIs
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://apis.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://evora-api.onrender.com wss://evora-api.onrender.com https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com; img-src 'self' data: blob: https://upload.wikimedia.org https://commons.wikimedia.org https://*.wikimedia.org https://evora-api.onrender.com https://lh3.googleusercontent.com https://*.googleusercontent.com; frame-src 'self' https://www.google.com https://maps.google.com https://www.youtube.com; worker-src 'self' blob:;"
+    Access-Control-Allow-Origin = "*"
