@@ -14,6 +14,7 @@ backend/uploads/*
 
 # ── Logs ──────────────────────────────────────────────────────────────
 backend/logs/
+output/logs/
 *.log
 
 # ── OS & Editor ───────────────────────────────────────────────────────
@@ -22,20 +23,21 @@ Thumbs.db
 .vscode/
 .idea/
 
-# ── Misc ──────────────────────────────────────────────────────────────
-*.paint
+# ── Stale output build ─────────────────────────────────────────────────
+output/
+
+# ── Utility / one-off scripts (contain JWT tokens — keep local only) ──
+patch_images.js
+repatch_images_unsplash.js
+insert_2026_events.js
+insert_2026_events.ps1
 fix_events.js
 seed_images.js
 seed_images2.js
 
+# ── Misc ──────────────────────────────────────────────────────────────
+*.paint
 mingit/
 
-
-mingit/
-node_modules/
-dist/
-.env
-
-
-# Local Netlify folder
+# ── Local Netlify folder ───────────────────────────────────────────────
 .netlify

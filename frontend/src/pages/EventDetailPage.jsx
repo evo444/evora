@@ -268,21 +268,24 @@ export default function EventDetailPage() {
 
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">{event.description}</p>
 
-            {/* Added by */}
-            {(event.submittedBy?.name || event.createdBy?.name) && (
-              <div className="flex items-center gap-2 mt-4">
-                {event.submittedBy?.name ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800/40">
-                    <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                    Submitted by {event.submittedBy.name}
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40">
-                    👑 Added by Admin
-                  </span>
-                )}
-              </div>
-            )}
+            {/* Added by / Source badge */}
+            <div className="flex flex-wrap items-center gap-2 mt-4">
+              {event.addedBy === 'AI' ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/40">
+                  🤖 AI Curated Event
+                </span>
+              ) : event.submittedBy?.name ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800/40">
+                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                  Submitted by {event.submittedBy.name}
+                </span>
+              ) : (event.addedBy === 'admin' || event.createdBy?.name) ? (
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/40">
+                  👑 Added by Admin
+                </span>
+              ) : null}
+            </div>
+
 
             {event.tags?.length > 0 && (
               <div className="flex flex-wrap gap-2 mt-4">
