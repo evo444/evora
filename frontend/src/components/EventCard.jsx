@@ -140,16 +140,20 @@ export default function EventCard({ event, index = 0, onDelete, onToggleTrending
               <span>👥</span><span>{event.attendees.toLocaleString()} attending</span>
             </div>
           )}
-          {/* Added by */}
-          {(event.submittedBy?.name || event.createdBy?.name) && (
+          {/* Added by / source badge */}
+          {(event.addedBy === 'AI' || event.submittedBy?.name || event.addedBy === 'admin' || event.createdBy?.name) && (
             <div className="flex items-center gap-1.5 text-xs">
-              {event.submittedBy?.name ? (
+              {event.addedBy === 'AI' ? (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/30 font-medium">
+                  🤖 AI Curated
+                </span>
+              ) : event.submittedBy?.name ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-800/30 font-medium">
                   👤 {event.submittedBy.name}
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 border border-purple-100 dark:border-purple-800/30 font-medium">
-                  👑 Added by Admin
+                  👑 Admin
                 </span>
               )}
             </div>

@@ -357,11 +357,21 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, onDeleteDup
               )}
 
               {/* ── Submitted by + timestamps ── */}
-              <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/30 text-sm flex items-center justify-between flex-wrap gap-2">
+              <div className={`p-3 rounded-xl border text-sm flex items-center justify-between flex-wrap gap-2 ${
+                sub.addedBy === 'AI'
+                  ? 'bg-indigo-50 dark:bg-indigo-900/20 border-indigo-100 dark:border-indigo-800/30'
+                  : 'bg-blue-50 dark:bg-blue-900/20 border-blue-100 dark:border-blue-800/30'
+              }`}>
                 <div>
-                  <span className="font-semibold text-blue-700 dark:text-blue-300">Submitted by: </span>
-                  <span className="text-blue-600 dark:text-blue-400">{sub.submittedBy?.name || 'Unknown'}</span>
-                  {sub.submittedBy?.email && <span className="text-blue-400 dark:text-blue-500"> · {sub.submittedBy.email}</span>}
+                  {sub.addedBy === 'AI' ? (
+                    <span className="font-semibold text-indigo-700 dark:text-indigo-300">🤖 AI Curated Event — auto-fetched by weekly scheduler</span>
+                  ) : (
+                    <>
+                      <span className="font-semibold text-blue-700 dark:text-blue-300">Submitted by: </span>
+                      <span className="text-blue-600 dark:text-blue-400">{sub.submittedBy?.name || 'Unknown'}</span>
+                      {sub.submittedBy?.email && <span className="text-blue-400 dark:text-blue-500"> · {sub.submittedBy.email}</span>}
+                    </>
+                  )}
                 </div>
                 <span className="text-blue-400 dark:text-blue-500 text-xs">{timeAgo(sub.createdAt)}</span>
               </div>
@@ -670,6 +680,9 @@ export default function AdminDashboard() {
                             <span className={`badge text-xs ${sub.status === 'pending' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' : 'bg-red-100 dark:bg-red-900/30 text-red-500'}`}>
                               {sub.status === 'pending' ? '⏳ Pending' : '✕ Rejected'}
                             </span>
+                            {sub.addedBy === 'AI' && (
+                              <span className="badge text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">🤖 AI Curated</span>
+                            )}
                             {submissions.some(s =>
                               s._id !== sub._id &&
                               !dismissedDuplicates.includes(s._id) &&
@@ -685,7 +698,7 @@ export default function AdminDashboard() {
                           <span>🗂 {sub.category}</span>
                           <span>📅 {new Date(sub.date).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}</span>
                           {sub.location?.district && <span>📍 {sub.location.district}</span>}
-                          <span>👤 {sub.submittedBy?.name || 'Unknown'}</span>
+                          <span>{sub.addedBy === 'AI' ? '🤖 AI Curated' : `👤 ${sub.submittedBy?.name || 'Unknown'}`}</span>
                         </div>
                         <button onClick={() => setPreviewSub(sub)}
                           className="w-full py-2 rounded-xl text-sm font-bold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-100 transition-all flex items-center justify-center gap-2">
