@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import CrowdBadge from './CrowdBadge';
@@ -6,6 +6,22 @@ import { StarDisplay } from './StarRating';
 import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+// Returns ms remaining until targetDate, or null if already passed
+function useIsLive(startDate, endDate) {
+  const check = () => {
+    const now = Date.now();
+    const started = startDate && now >= new Date(startDate).getTime();
+    const ended   = endDate   && now >= new Date(endDate).getTime();
+    return started && !ended;
+  };
+  const [live, setLive] = useState(check);
+  useEffect(() => {
+    const id = setInterval(() => setLive(check()), 10000); // re-check every 10s
+    return () => clearInterval(id);
+  }, [startDate, endDate]);
+  return live;
+}
 
 const categoryColors = {
   Festival:  'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300',
@@ -35,6 +51,7 @@ const cardVariants = {
 
 export default function EventCard({ event, index = 0, onDelete, onToggleTrending }) {
   const { isAdmin } = useAuth();
+  const isLive = useIsLive(event.date, event.endDate);
 
   const imageUrl = event.images?.[0]
     ? (event.images[0].startsWith('http') ? event.images[0] : `${API_URL}${event.images[0]}`)
@@ -128,6 +145,18 @@ export default function EventCard({ event, index = 0, onDelete, onToggleTrending
 
         {/* Meta */}
         <div className="space-y-1.5 mb-3">
+          {/* Live Now indicator */}
+          {isLive && (
+            <div className="flex items-center gap-1.5">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-green-50 dark:bg-green-900/25 border border-green-200 dark:border-green-800/40 text-green-600 dark:text-green-400">
+                <span className="relative flex h-1.5 w-1.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
+                </span>
+                Live Now
+              </span>
+            </div>
+          )}
           <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
             <span>📅</span><span>{formatDate(event.date)}</span>
           </div>
@@ -145,7 +174,7 @@ export default function EventCard({ event, index = 0, onDelete, onToggleTrending
             <div className="flex items-center gap-1.5 text-xs">
               {event.addedBy === 'AI' ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/30 font-medium">
-                  🤖 AI Curated
+                  🤖 Added by AI
                 </span>
               ) : event.submittedBy?.name ? (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-800/30 font-medium">

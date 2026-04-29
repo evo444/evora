@@ -100,9 +100,6 @@ export default function Navbar() {
 
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 group flex-shrink-0">
-            <div className="w-8 h-8 bg-gray-900 dark:bg-white rounded-lg flex items-center justify-center shadow-glow group-hover:shadow-glow-lg transition-all">
-              <span className="text-white dark:text-gray-900 font-black text-sm">E</span>
-            </div>
             <span className="text-xl font-black text-gray-900 dark:text-white tracking-tight">Evora</span>
             <span className="hidden sm:block text-xs text-gray-500 dark:text-gray-400 font-medium border border-gray-200 dark:border-gray-700 rounded-full px-2 py-0.5">Kerala</span>
           </Link>
