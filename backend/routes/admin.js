@@ -431,4 +431,148 @@ router.get('/ai-stats', protect, adminOnly, async (req, res) => {
   }
 });
 
+
+// ── Duplicate Detection & Merge ───────────────────────────────────────────────
+
+/**
+ * Simple title similarity score (0–1) using bigram overlap (Dice coefficient).
+ * Works without external NLP libs. Handles typos and word reordering well.
+ */
+function diceSimilarity(a, b) {
+  const norm = s => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+  const bigrams = s => {
+    const set = new Set();
+    for (let i = 0; i < s.length - 1; i++) set.add(s[i] + s[i + 1]);
+    return set;
+  };
+  const na = norm(a); const nb = norm(b);
+  if (!na || !nb) return 0;
+  if (na === nb) return 1;
+  const ba = bigrams(na); const bb = bigrams(nb);
+  let inter = 0;
+  for (const bg of ba) if (bb.has(bg)) inter++;
+  return (2 * inter) / (ba.size + bb.size);
+}
+
+/**
+ * GET /api/admin/duplicates
+ * Returns groups of potentially duplicate events.
+ * Scoring: title similarity (60%) + date proximity (40%).
+ * Only returns pairs with combined score >= 0.55.
+ */
+router.get('/duplicates', protect, adminOnly, async (req, res) => {
+  try {
+    const threshold = parseFloat(req.query.threshold) || 0.55;
+    // Fetch all non-rejected events (approved + pending)
+    const events = await Event.find({ status: { $ne: 'rejected' } })
+      .select('name date endDate location category description images tags crowd attendees addedBy status createdAt')
+      .sort({ date: 1 })
+      .lean();
+
+    const groups = [];
+    const used = new Set();
+
+    for (let i = 0; i < events.length; i++) {
+      if (used.has(i)) continue;
+      const group = [events[i]];
+
+      for (let j = i + 1; j < events.length; j++) {
+        if (used.has(j)) continue;
+        const a = events[i]; const b = events[j];
+
+        // Title similarity (Dice coefficient)
+        const titleScore = diceSimilarity(a.name, b.name);
+
+        // Date proximity score: 1.0 if same day, decays to 0 over 14 days
+        const dayDiff = Math.abs(new Date(a.date) - new Date(b.date)) / 86400000;
+        const dateScore = Math.max(0, 1 - dayDiff / 14);
+
+        // Location similarity bonus: same district = +0.1
+        const locBonus = (a.location?.district && b.location?.district &&
+          a.location.district === b.location.district) ? 0.1 : 0;
+
+        const combined = titleScore * 0.6 + dateScore * 0.4 + locBonus;
+
+        if (combined >= threshold) {
+          group.push({ ...events[j], _score: Math.round(combined * 100) });
+          used.add(j);
+        }
+      }
+
+      if (group.length > 1) {
+        groups.push({
+          id: `group_${i}`,
+          score: group[1]._score,
+          events: group,
+        });
+        used.add(i);
+      }
+    }
+
+    // Sort groups by highest score first
+    groups.sort((a, b) => b.score - a.score);
+    res.json({ groups, total: groups.length });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+/**
+ * POST /api/admin/merge
+ * Body: { keepId, deleteId, overrides? }
+ * Merges deleteId into keepId:
+ *  - Keeps the longer description (or uses overrides.description).
+ *  - Merges tags (union, dedup).
+ *  - Merges images (union, dedup).
+ *  - Keeps the higher attendee count.
+ *  - Applies any field overrides the admin sends.
+ * Deletes deleteId after merge.
+ */
+router.post('/merge', protect, adminOnly, async (req, res) => {
+  try {
+    const { keepId, deleteId, overrides = {} } = req.body;
+    if (!keepId || !deleteId) return res.status(400).json({ message: 'keepId and deleteId required' });
+    if (keepId === deleteId) return res.status(400).json({ message: 'Cannot merge an event with itself' });
+
+    const [keep, del] = await Promise.all([
+      Event.findById(keepId),
+      Event.findById(deleteId),
+    ]);
+    if (!keep) return res.status(404).json({ message: 'keepId event not found' });
+    if (!del)  return res.status(404).json({ message: 'deleteId event not found' });
+
+    // Smart merge: pick best value for each field
+    const mergedDescription = overrides.description ||
+      (del.description.length > keep.description.length ? del.description : keep.description);
+
+    const mergedTags = [...new Set([...(keep.tags || []), ...(del.tags || [])])];
+    const mergedImages = [...new Set([...(keep.images || []), ...(del.images || [])])];
+    const mergedAttendees = Math.max(keep.attendees || 0, del.attendees || 0);
+
+    const update = {
+      description: mergedDescription,
+      tags: mergedTags,
+      images: mergedImages,
+      attendees: mergedAttendees,
+      // If either was trending, keep it trending
+      trending: keep.trending || del.trending,
+      // Prefer approved status
+      status: (keep.status === 'approved' || del.status === 'approved') ? 'approved' : keep.status,
+      // Apply any manual overrides from admin
+      ...overrides,
+    };
+
+    const merged = await Event.findByIdAndUpdate(keepId, update, { new: true });
+    await Event.findByIdAndDelete(deleteId);
+
+    res.json({
+      message: `✅ Events merged. "${del.name}" was merged into "${keep.name}" and deleted.`,
+      merged,
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 module.exports = router;
+

@@ -25,7 +25,7 @@ const greenIcon = new L.Icon({
   iconSize: [25,41], iconAnchor: [12,41], popupAnchor: [1,-34], shadowSize: [41,41],
 });
 
-const tabs = ['Overview', 'Events', 'Submissions', 'Users', 'Feedback', 'Database'];
+const tabs = ['Overview', 'Events', 'Submissions', 'Duplicates', 'Users', 'Feedback', 'Database'];
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // Build a safe image URL — handles all storage formats:
@@ -364,7 +364,7 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, onDeleteDup
               }`}>
                 <div>
                   {sub.addedBy === 'AI' ? (
-                    <span className="font-semibold text-indigo-700 dark:text-indigo-300">🤖 AI Curated Event — auto-fetched by weekly scheduler</span>
+                    <span className="font-semibold text-indigo-700 dark:text-indigo-300">🤖 Added by AI — auto-fetched by weekly scheduler</span>
                   ) : (
                     <>
                       <span className="font-semibold text-blue-700 dark:text-blue-300">Submitted by: </span>
@@ -414,6 +414,233 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, onDeleteDup
 }
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+// ── Duplicates Tab Component ──────────────────────────────────────────────────
+function DuplicatesTab() {
+  const [groups, setGroups] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [merging, setMerging] = useState(null);  // groupId being merged
+  const [dismissed, setDismissed] = useState(new Set());
+  const [mergeModal, setMergeModal] = useState(null); // { group }
+  const [keepId, setKeepId] = useState('');
+
+  const fetchDuplicates = async () => {
+    setLoading(true);
+    try {
+      const token = localStorage.getItem('evora_token');
+      const res = await axios.get(`${API_URL}/api/admin/duplicates`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setGroups(res.data.groups || []);
+    } catch { toast.error('Failed to load duplicates'); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { fetchDuplicates(); }, []);
+
+  const handleMerge = async (group) => {
+    const deleteId = group.events.find(e => e._id !== keepId)?._id;
+    if (!keepId || !deleteId) { toast.error('Select which event to keep'); return; }
+    setMerging(group.id);
+    try {
+      const token = localStorage.getItem('evora_token');
+      const res = await axios.post(`${API_URL}/api/admin/merge`,
+        { keepId, deleteId },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      toast.success(res.data.message);
+      setMergeModal(null);
+      setKeepId('');
+      fetchDuplicates();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Merge failed');
+    } finally { setMerging(null); }
+  };
+
+  const visibleGroups = groups.filter(g => !dismissed.has(g.id));
+
+  const scoreColor = (score) =>
+    score >= 90 ? 'text-red-500 bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/40'
+    : score >= 75 ? 'text-orange-500 bg-orange-50 dark:bg-orange-900/20 border-orange-200 dark:border-orange-800/40'
+    : 'text-amber-600 bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/40';
+
+  const fmtDate = d => d ? new Date(d).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' }) : '—';
+
+  if (loading) return (
+    <div className="space-y-4">
+      {[...Array(3)].map((_, i) => <div key={i} className="card h-40 skeleton" />)}
+    </div>
+  );
+
+  return (
+    <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} className="space-y-5">
+
+      {/* Merge Modal */}
+      {mergeModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => { setMergeModal(null); setKeepId(''); }}>
+          <motion.div
+            initial={{ opacity:0, scale:0.95, y:20 }}
+            animate={{ opacity:1, scale:1, y:0 }}
+            onClick={e => e.stopPropagation()}
+            className="w-full max-w-xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden"
+          >
+            <div className="p-5 border-b border-gray-100 dark:border-gray-800">
+              <h3 className="font-black text-gray-900 dark:text-white text-lg">🧠 Smart Merge</h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Choose which event to <strong>keep</strong>. The other will be merged into it and deleted. Combined tags, images, and descriptions are preserved automatically.</p>
+            </div>
+            <div className="p-5 space-y-3">
+              {mergeModal.group.events.map(ev => (
+                <button
+                  key={ev._id}
+                  onClick={() => setKeepId(ev._id)}
+                  className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
+                    keepId === ev._id
+                      ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
+                      : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
+                      keepId === ev._id ? 'border-green-500 bg-green-500' : 'border-gray-300 dark:border-gray-600'
+                    }`}>
+                      {keepId === ev._id && <span className="text-white text-xs">✓</span>}
+                    </span>
+                    <span className="font-bold text-sm text-gray-900 dark:text-white">{ev.name}</span>
+                    <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
+                      ev.status === 'approved' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+                    }`}>{ev.status}</span>
+                  </div>
+                  <div className="flex gap-3 text-xs text-gray-400 dark:text-gray-500 ml-7">
+                    <span>📅 {fmtDate(ev.date)}</span>
+                    <span>📍 {ev.location?.district || '—'}</span>
+                    <span>🖼 {ev.images?.length || 0} photos</span>
+                    <span>🏷 {ev.tags?.length || 0} tags</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+            <div className="p-5 border-t border-gray-100 dark:border-gray-800 flex gap-3">
+              <button
+                onClick={() => handleMerge(mergeModal.group)}
+                disabled={!keepId || merging === mergeModal.group.id}
+                className="flex-1 btn-primary py-3 text-sm font-bold disabled:opacity-40"
+              >
+                {merging === mergeModal.group.id ? '⏳ Merging...' : '🧠 Merge & Delete Duplicate'}
+              </button>
+              <button onClick={() => { setMergeModal(null); setKeepId(''); }} className="px-5 py-3 rounded-xl text-sm font-semibold bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">
+                Cancel
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div>
+          <h2 className="text-lg font-black text-gray-900 dark:text-white">🔄 Duplicate Detection</h2>
+          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">AI-powered scan of all events — scored by title similarity + date proximity + location</p>
+        </div>
+        <button onClick={fetchDuplicates} className="btn-secondary text-sm flex items-center gap-1.5">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+          Re-scan
+        </button>
+      </div>
+
+      {/* Summary pill */}
+      {visibleGroups.length > 0 && (
+        <div className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800/40">
+          <span className="text-xl">⚠️</span>
+          <div>
+            <p className="text-sm font-bold text-amber-700 dark:text-amber-400">{visibleGroups.length} potential duplicate group{visibleGroups.length > 1 ? 's' : ''} found</p>
+            <p className="text-xs text-amber-600 dark:text-amber-500">Review and merge or dismiss each group below.</p>
+          </div>
+        </div>
+      )}
+
+      {/* Empty state */}
+      {visibleGroups.length === 0 && (
+        <div className="card p-16 text-center">
+          <div className="text-5xl mb-3">✅</div>
+          <p className="text-gray-500 dark:text-gray-400 font-semibold">No duplicates detected</p>
+          <p className="text-xs text-gray-400 mt-1">All events appear to be unique. Click Re-scan to check again.</p>
+        </div>
+      )}
+
+      {/* Duplicate groups */}
+      {visibleGroups.map(group => (
+        <div key={group.id} className="card overflow-hidden">
+          {/* Group header */}
+          <div className="flex items-center justify-between p-4 border-b border-gray-100 dark:border-gray-800 gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <span className="text-lg">🔁</span>
+              <div>
+                <p className="font-bold text-gray-900 dark:text-white text-sm">{group.events[0].name}</p>
+                <p className="text-xs text-gray-400">Group of {group.events.length} similar events</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`text-xs font-black px-2.5 py-1 rounded-full border ${scoreColor(group.score)}`}>
+                {group.score}% match
+              </span>
+            </div>
+          </div>
+
+          {/* Side-by-side event comparison */}
+          <div className="divide-y divide-gray-50 dark:divide-gray-800">
+            {group.events.map((ev, idx) => (
+              <div key={ev._id} className="p-4 flex gap-4">
+                {/* Image */}
+                {ev.images?.[0] ? (
+                  <img src={ev.images[0]} alt="" className="w-20 h-16 rounded-xl object-cover flex-shrink-0" />
+                ) : (
+                  <div className="w-20 h-16 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl flex-shrink-0">🎪</div>
+                )}
+                {/* Details */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <p className="font-bold text-sm text-gray-900 dark:text-white line-clamp-1">{ev.name}</p>
+                    <span className={`text-xs px-2 py-0.5 rounded-full flex-shrink-0 ${
+                      ev.status === 'approved' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
+                      : 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400'
+                    }`}>{ev.status}</span>
+                  </div>
+                  <div className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400">
+                    <span>📅 {fmtDate(ev.date)}</span>
+                    {ev.location?.district && <span>📍 {ev.location.district}</span>}
+                    <span>🗂 {ev.category}</span>
+                    <span>🖼 {ev.images?.length || 0} photos</span>
+                    <span>🏷 {(ev.tags || []).slice(0,3).join(', ')}{(ev.tags?.length > 3) ? '…' : ''}</span>
+                    {ev.addedBy === 'AI' && <span className="text-indigo-500">🤖 AI</span>}
+                  </div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 line-clamp-2 mt-1">{ev.description?.slice(0, 120)}…</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Actions */}
+          <div className="flex border-t border-gray-100 dark:border-gray-800">
+            <button
+              onClick={() => { setMergeModal({ group }); setKeepId(''); }}
+              className="flex-1 py-3 text-sm font-bold text-green-600 dark:text-green-400 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all flex items-center justify-center gap-1.5"
+            >
+              🧠 Edit &amp; Merge
+            </button>
+            <div className="w-px bg-gray-100 dark:bg-gray-800" />
+            <button
+              onClick={() => { setDismissed(prev => new Set([...prev, group.id])); toast.success('Dismissed — not a duplicate'); }}
+              className="flex-1 py-3 text-sm font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-all flex items-center justify-center gap-1.5"
+            >
+              ✓ Not a Duplicate
+            </button>
+          </div>
+        </div>
+      ))}
+    </motion.div>
+  );
+}
 
 export default function AdminDashboard() {
   const { isAdmin } = useAuth();
@@ -681,7 +908,7 @@ export default function AdminDashboard() {
                               {sub.status === 'pending' ? '⏳ Pending' : '✕ Rejected'}
                             </span>
                             {sub.addedBy === 'AI' && (
-                              <span className="badge text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">🤖 AI Curated</span>
+                              <span className="badge text-xs bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300">🤖 Added by AI</span>
                             )}
                             {submissions.some(s =>
                               s._id !== sub._id &&
@@ -698,7 +925,7 @@ export default function AdminDashboard() {
                           <span>🗂 {sub.category}</span>
                           <span>📅 {new Date(sub.date).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}</span>
                           {sub.location?.district && <span>📍 {sub.location.district}</span>}
-                          <span>{sub.addedBy === 'AI' ? '🤖 AI Curated' : `👤 ${sub.submittedBy?.name || 'Unknown'}`}</span>
+                          <span>{sub.addedBy === 'AI' ? '🤖 Added by AI' : `👤 ${sub.submittedBy?.name || 'Unknown'}`}</span>
                         </div>
                         <button onClick={() => setPreviewSub(sub)}
                           className="w-full py-2 rounded-xl text-sm font-bold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-100 transition-all flex items-center justify-center gap-2">
@@ -713,6 +940,9 @@ export default function AdminDashboard() {
               })}
             </motion.div>
           )}
+
+          {/* Duplicates Tab */}
+          {activeTab === 'Duplicates' && <DuplicatesTab />}
 
           {/* Events Tab */}
           {activeTab === 'Events' && (
