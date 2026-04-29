@@ -437,9 +437,11 @@ router.get('/ai-stats', protect, adminOnly, async (req, res) => {
 /**
  * Simple title similarity score (0–1) using bigram overlap (Dice coefficient).
  * Works without external NLP libs. Handles typos and word reordering well.
+ * Returns 0 safely if either input is null/undefined/empty.
  */
 function diceSimilarity(a, b) {
-  const norm = s => s.toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
+  if (!a || !b) return 0;
+  const norm = s => String(s).toLowerCase().replace(/[^a-z0-9 ]/g, '').trim();
   const bigrams = s => {
     const set = new Set();
     for (let i = 0; i < s.length - 1; i++) set.add(s[i] + s[i + 1]);
@@ -449,6 +451,7 @@ function diceSimilarity(a, b) {
   if (!na || !nb) return 0;
   if (na === nb) return 1;
   const ba = bigrams(na); const bb = bigrams(nb);
+  if (ba.size + bb.size === 0) return 0;
   let inter = 0;
   for (const bg of ba) if (bb.has(bg)) inter++;
   return (2 * inter) / (ba.size + bb.size);
@@ -463,8 +466,8 @@ function diceSimilarity(a, b) {
 router.get('/duplicates', protect, adminOnly, async (req, res) => {
   try {
     const threshold = parseFloat(req.query.threshold) || 0.55;
-    // Fetch all non-rejected events (approved + pending)
-    const events = await Event.find({ status: { $ne: 'rejected' } })
+    // Fetch all non-rejected events (approved + pending) that have a name + date
+    const events = await Event.find({ status: { $ne: 'rejected' }, name: { $exists: true }, date: { $exists: true } })
       .select('name date endDate location category description images tags crowd attendees addedBy status createdAt')
       .sort({ date: 1 })
       .lean();
@@ -480,11 +483,16 @@ router.get('/duplicates', protect, adminOnly, async (req, res) => {
         if (used.has(j)) continue;
         const a = events[i]; const b = events[j];
 
-        // Title similarity (Dice coefficient)
+        // Title similarity (Dice coefficient) — null-safe
         const titleScore = diceSimilarity(a.name, b.name);
 
         // Date proximity score: 1.0 if same day, decays to 0 over 14 days
-        const dayDiff = Math.abs(new Date(a.date) - new Date(b.date)) / 86400000;
+        // Guard against missing/invalid dates
+        const aTime = a.date ? new Date(a.date).getTime() : NaN;
+        const bTime = b.date ? new Date(b.date).getTime() : NaN;
+        const dayDiff = (!isNaN(aTime) && !isNaN(bTime))
+          ? Math.abs(aTime - bTime) / 86400000
+          : 999;
         const dateScore = Math.max(0, 1 - dayDiff / 14);
 
         // Location similarity bonus: same district = +0.1
@@ -513,6 +521,7 @@ router.get('/duplicates', protect, adminOnly, async (req, res) => {
     groups.sort((a, b) => b.score - a.score);
     res.json({ groups, total: groups.length });
   } catch (err) {
+    console.error('[/duplicates]', err);
     res.status(500).json({ message: err.message });
   }
 });
