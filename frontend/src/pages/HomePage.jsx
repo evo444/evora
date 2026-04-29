@@ -414,13 +414,13 @@ export default function HomePage() {
       <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
 
         {/* ── Global Filter Bar ── */}
-        <div className="filter-bar mb-4 sm:mb-6 p-2.5 sm:p-3 rounded-2xl border border-gray-100 dark:border-dark-border shadow-card">
-          {/* Single scrollable row: category pills + dropdowns side by side on mobile */}
+        <div className="filter-bar mb-4 sm:mb-6 p-2.5 sm:p-3 rounded-2xl border border-gray-100 dark:border-dark-border shadow-card space-y-2">
+
+          {/* Row 1: Category pills */}
           <div
-            className="flex gap-2 items-center overflow-x-auto"
+            className="flex gap-1.5 items-center overflow-x-auto"
             style={{ msOverflowStyle: 'none', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
           >
-            {/* Category glass segmented control */}
             <div
               className="relative flex items-center rounded-full p-0.5 sm:p-1 flex-shrink-0"
               style={{
@@ -436,8 +436,8 @@ export default function HomePage() {
                 <button
                   key={f.value}
                   onClick={() => { setCategory(f.value); setPage(1); }}
-                  className="relative px-3 sm:px-5 py-1.5 text-xs font-semibold rounded-full transition-colors duration-200 focus:outline-none select-none"
-                  style={{ minWidth: 48, textAlign: 'center' }}
+                  className="relative px-4 sm:px-6 py-1.5 text-xs font-semibold rounded-full transition-colors duration-200 focus:outline-none select-none"
+                  style={{ minWidth: 52, textAlign: 'center' }}
                 >
                   {category === f.value && (
                     <motion.div
@@ -463,14 +463,17 @@ export default function HomePage() {
                 </button>
               ))}
             </div>
+          </div>
 
-            {/* Divider */}
-            <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
-
+          {/* Row 2: Dropdowns */}
+          <div
+            className="flex gap-2 items-center overflow-x-auto"
+            style={{ msOverflowStyle: 'none', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
+          >
             {/* District / Place */}
             <GlassSelect
               icon="📍"
-              placeholder="Place"
+              placeholder="All Places"
               value={district}
               onChange={v => { setDistrict(v); setPage(1); }}
               options={[
@@ -483,7 +486,7 @@ export default function HomePage() {
             {/* Crowd */}
             <GlassSelect
               icon="👥"
-              placeholder="Crowd"
+              placeholder="All Crowds"
               value={crowd}
               onChange={v => { setCrowd(v); setPage(1); }}
               options={CROWD_LEVELS.map(c => ({
@@ -495,24 +498,24 @@ export default function HomePage() {
             {/* Rating */}
             <GlassSelect
               icon="⭐"
-              placeholder="Rating"
+              placeholder="Any Rating"
               value={minRating}
               onChange={v => { setMinRating(v); setPage(1); }}
               options={[
                 { value: '', label: 'Any Rating' },
-                { value: '3', label: '3+★' },
-                { value: '4', label: '4+★' },
-                { value: '4.5', label: '4.5+★' },
+                { value: '3', label: '3+ Stars' },
+                { value: '4', label: '4+ Stars' },
+                { value: '4.5', label: '4.5+ Stars' },
               ]}
             />
 
-            {/* Clear — only when active */}
+            {/* Clear */}
             {(search || category !== 'All' || crowd !== 'All' || minRating || district) && (
               <motion.button
                 initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                 onClick={resetFilters}
-                className="text-xs font-semibold px-2.5 py-1.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors flex-shrink-0"
-              >✕</motion.button>
+                className="text-xs font-semibold px-3 py-1.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors flex-shrink-0"
+              >× Clear</motion.button>
             )}
           </div>
         </div>
