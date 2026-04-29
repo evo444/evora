@@ -396,32 +396,33 @@ export default function HomePage() {
 
   return (
     <div className="min-h-screen">
-      {/* Clean White Header — title only, search is in navbar */}
-      <div className="hero-section py-5 sm:py-10">
+      {/* Hero — tighter on mobile */}
+      <div className="hero-section py-4 sm:py-10">
         <div className="max-w-4xl mx-auto text-center px-4">
           <motion.div initial={{opacity:0,y:-12}} animate={{opacity:1,y:0}} transition={{duration:0.45}}>
-            <span className="text-gray-400 text-xs font-semibold uppercase tracking-widest mb-1 block">🌍 Discover Kerala</span>
-            <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white leading-tight">
+            <span className="text-gray-400 text-[10px] sm:text-xs font-semibold uppercase tracking-widest mb-1 block">🌍 Discover Kerala</span>
+            <h1 className="text-xl sm:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white leading-tight">
               Every Event in Kerala
             </h1>
-            <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base mt-2 max-w-lg mx-auto">
+            <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-base mt-1.5 max-w-lg mx-auto hidden sm:block">
               Festivals, concerts, cultural shows, tech meetups — all in one place.
             </p>
           </motion.div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
 
         {/* ── Global Filter Bar ── */}
-        <div className="filter-bar mb-6 p-3 rounded-2xl border border-gray-100 dark:border-dark-border shadow-card">
-          {/* Row 1: Category pills */}
+        <div className="filter-bar mb-4 sm:mb-6 p-2.5 sm:p-3 rounded-2xl border border-gray-100 dark:border-dark-border shadow-card">
+          {/* Single scrollable row: category pills + dropdowns side by side on mobile */}
           <div
-            className="flex gap-1.5 items-center overflow-x-auto pb-1 scrollbar-none"
+            className="flex gap-2 items-center overflow-x-auto"
             style={{ msOverflowStyle: 'none', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
           >
+            {/* Category glass segmented control */}
             <div
-              className="relative flex items-center rounded-full p-1 flex-shrink-0"
+              className="relative flex items-center rounded-full p-0.5 sm:p-1 flex-shrink-0"
               style={{
                 background: 'rgba(255,255,255,0.18)',
                 backdropFilter: 'blur(16px)',
@@ -435,8 +436,8 @@ export default function HomePage() {
                 <button
                   key={f.value}
                   onClick={() => { setCategory(f.value); setPage(1); }}
-                  className="relative px-4 sm:px-7 py-2 text-xs sm:text-sm font-semibold rounded-full transition-colors duration-200 focus:outline-none select-none"
-                  style={{ minWidth: 64, textAlign: 'center' }}
+                  className="relative px-3 sm:px-5 py-1.5 text-xs font-semibold rounded-full transition-colors duration-200 focus:outline-none select-none"
+                  style={{ minWidth: 48, textAlign: 'center' }}
                 >
                   {category === f.value && (
                     <motion.div
@@ -462,15 +463,14 @@ export default function HomePage() {
                 </button>
               ))}
             </div>
-          </div>
 
-          {/* Row 2: Dropdown selects */}
-          <div className="flex gap-2 items-center flex-wrap mt-2.5">
+            {/* Divider */}
+            <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 flex-shrink-0" />
 
             {/* District / Place */}
             <GlassSelect
               icon="📍"
-              placeholder="All Places"
+              placeholder="Place"
               value={district}
               onChange={v => { setDistrict(v); setPage(1); }}
               options={[
@@ -483,7 +483,7 @@ export default function HomePage() {
             {/* Crowd */}
             <GlassSelect
               icon="👥"
-              placeholder="All Crowds"
+              placeholder="Crowd"
               value={crowd}
               onChange={v => { setCrowd(v); setPage(1); }}
               options={CROWD_LEVELS.map(c => ({
@@ -495,43 +495,40 @@ export default function HomePage() {
             {/* Rating */}
             <GlassSelect
               icon="⭐"
-              placeholder="Any Rating"
+              placeholder="Rating"
               value={minRating}
               onChange={v => { setMinRating(v); setPage(1); }}
               options={[
                 { value: '', label: 'Any Rating' },
-                { value: '3', label: '3+ Stars' },
-                { value: '4', label: '4+ Stars' },
-                { value: '4.5', label: '4.5+ Stars' },
+                { value: '3', label: '3+★' },
+                { value: '4', label: '4+★' },
+                { value: '4.5', label: '4.5+★' },
               ]}
             />
 
-            {/* Clear */}
+            {/* Clear — only when active */}
             {(search || category !== 'All' || crowd !== 'All' || minRating || district) && (
               <motion.button
                 initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                 onClick={resetFilters}
-                className="text-xs font-semibold px-3 py-2 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors flex-shrink-0"
-              >× Clear</motion.button>
+                className="text-xs font-semibold px-2.5 py-1.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors flex-shrink-0"
+              >✕</motion.button>
             )}
           </div>
         </div>
 
         {/* This Week Section */}
-        <section className="mb-10">
-          {/* Section header — redesigned */}
-          <div className="flex items-center justify-between mb-5 gap-4">
-            {/* Left: icon + title + subtitle */}
-            <div className="flex items-center gap-3">
-              {/* Calendar icon accent */}
-              <div className="w-10 h-10 rounded-2xl bg-gray-900 dark:bg-white flex items-center justify-center shadow-sm flex-shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white dark:text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+        <section className="mb-6 sm:mb-10">
+          <div className="flex items-center justify-between mb-3 sm:mb-5 gap-3">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gray-900 dark:bg-white flex items-center justify-center shadow-sm flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 sm:w-5 sm:h-5 text-white dark:text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               </div>
               <div>
-                <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight leading-none">This Week</h2>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 font-medium">Upcoming events near you</p>
+                <h2 className="text-base sm:text-xl font-black text-gray-900 dark:text-white tracking-tight leading-none">This Week</h2>
+                <p className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 mt-0.5 font-medium">Upcoming events near you</p>
               </div>
             </div>
 
@@ -704,56 +701,53 @@ export default function HomePage() {
 
         {/* All Events */}
         <section>
-          <div className="flex items-center justify-between mb-5 gap-4 flex-wrap">
-            {/* Left: icon + title + subtitle */}
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-gray-900 dark:bg-white flex items-center justify-center shadow-sm flex-shrink-0">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 text-white dark:text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
+          <div className="flex items-center justify-between mb-3 sm:mb-5 gap-3 flex-wrap">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl bg-gray-900 dark:bg-white flex items-center justify-center shadow-sm flex-shrink-0">
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4 sm:w-5 sm:h-5 text-white dark:text-gray-900" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
                 </svg>
               </div>
               <div>
-                <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight leading-none">
+                <h2 className="text-base sm:text-xl font-black text-gray-900 dark:text-white tracking-tight leading-none">
                   {search ? `Results for "${search}"` : 'All Events'}
                 </h2>
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5 font-medium">
-                  {search ? `Showing matches across Kerala` : 'Discover events around you'}
+                <p className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 mt-0.5 font-medium">
+                  {search ? 'Showing matches across Kerala' : 'Discover events around you'}
                 </p>
               </div>
             </div>
 
-            {/* Right: count + admin button */}
             <div className="flex items-center gap-2">
-              {/* Total count pill */}
               {!loading && (
-                <div className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
                   <span className="text-sm font-black text-gray-900 dark:text-white tabular-nums">{total}</span>
                   <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">found</span>
                 </div>
               )}
               {isAdmin() && (
-                <Link to="/admin/events/new" className="btn-primary text-sm flex items-center gap-1">
-                  <span>+</span> Add Event
+                <Link to="/admin/events/new" className="btn-primary text-xs sm:text-sm px-3 py-1.5 sm:px-4 sm:py-2 flex items-center gap-1">
+                  + Add Event
                 </Link>
               )}
             </div>
           </div>
 
-          {/* Events Grid */}
+          {/* Events Grid — 2 cols on mobile, 2 on sm, 3 on lg, 4 on xl */}
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
               {Array.from({length: 8}).map((_, i) => <SkeletonCard key={i} />)}
             </div>
           ) : events.length === 0 ? (
-            <div className="text-center py-20">
-              <div className="text-6xl mb-4">🔍</div>
-              <h3 className="text-xl font-semibold text-gray-700 dark:text-gray-300 mb-2">No events found</h3>
-              <p className="text-gray-400 mb-4">Try adjusting your search or filters</p>
-              <button onClick={resetFilters} className="btn-primary">Clear Filters</button>
+            <div className="text-center py-12">
+              <div className="text-5xl mb-3">🔍</div>
+              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No events found</h3>
+              <p className="text-gray-400 text-sm mb-4">Try adjusting your search or filters</p>
+              <button onClick={resetFilters} className="btn-primary text-sm">Clear Filters</button>
             </div>
           ) : (
             <motion.div
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5"
+              className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5"
               variants={staggerContainer}
               initial="hidden"
               whileInView="show"
