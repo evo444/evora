@@ -15,8 +15,7 @@ export const useAuth = () => useContext(AuthContext);
 
 const API = axios.create({ baseURL: import.meta.env.VITE_API_URL });
 
-// Key used to signal that a Google redirect login is in progress.
-// Survives page reloads (unlike component state).
+// Use localStorage — survives iOS Safari clearing sessionStorage during cross-origin redirects
 const REDIRECT_FLAG = 'evora_google_redirect';
 
 export const AuthProvider = ({ children }) => {
@@ -24,41 +23,40 @@ export const AuthProvider = ({ children }) => {
   const [token,   setToken]   = useState(() => localStorage.getItem('evora_token'));
   const [loading, setLoading] = useState(true);
 
-  // Ref so the onAuthStateChanged handler is never stale
-  const processingGoogle = useRef(false);
+  const googleProcessed = useRef(false); // prevent double-processing
 
-  // ── Shared: exchange Firebase idToken for our JWT ──────────────────────────
+  // ── Exchange Firebase idToken for our JWT ─────────────────────────────────
   const exchangeGoogleToken = async (firebaseUser) => {
-    const idToken = await firebaseUser.getIdToken(/* forceRefresh */ true);
+    const idToken = await firebaseUser.getIdToken(true);
     const res = await API.post('/api/auth/google', { idToken });
     const { token: t, user: u } = res.data;
     localStorage.setItem('evora_token', t);
+    localStorage.removeItem(REDIRECT_FLAG);
     API.defaults.headers.common['Authorization'] = `Bearer ${t}`;
     setToken(t);
     setUser(u);
     return u;
   };
 
-  // ── Main auth state listener ───────────────────────────────────────────────
+  // ── Auth state + redirect result on mount ─────────────────────────────────
   useEffect(() => {
-    const wasRedirecting = sessionStorage.getItem(REDIRECT_FLAG);
+    const wasRedirecting = localStorage.getItem(REDIRECT_FLAG) === '1';
 
+    // Listen for Firebase auth state changes
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      // Case 1: Returning from Google redirect — process the new login
-      if (firebaseUser && wasRedirecting && !processingGoogle.current) {
-        processingGoogle.current = true;
-        sessionStorage.removeItem(REDIRECT_FLAG);
+      if (firebaseUser && wasRedirecting && !googleProcessed.current) {
+        // User just came back from Google redirect — exchange for our JWT
+        googleProcessed.current = true;
         try {
           const u = await exchangeGoogleToken(firebaseUser);
           toast.success(`Welcome, ${u.name?.split(' ')[0] || 'back'} 👋`, { duration: 3000 });
         } catch (err) {
-          console.error('[AuthContext] Google backend error:', err);
+          console.error('[Auth] Google backend error:', err);
+          localStorage.removeItem(REDIRECT_FLAG);
           toast.error(
-            err?.response?.data?.message ||
-            'Google sign-in failed — please try again.',
+            err?.response?.data?.message || 'Sign-in failed. Please try again.',
             { duration: 5000 }
           );
-          // Sign out of Firebase so the user can retry cleanly
           try { await signOut(auth); } catch (_) {}
         } finally {
           setLoading(false);
@@ -66,7 +64,7 @@ export const AuthProvider = ({ children }) => {
         return;
       }
 
-      // Case 2: No Google redirect — just restore existing JWT session
+      // Normal page load — restore JWT session if present
       if (!wasRedirecting) {
         const saved = localStorage.getItem('evora_token');
         if (saved) {
@@ -75,7 +73,6 @@ export const AuthProvider = ({ children }) => {
             const res = await API.get('/api/auth/me');
             setUser(res.data);
           } catch {
-            // JWT expired or invalid — clear it
             localStorage.removeItem('evora_token');
             setToken(null);
             setUser(null);
@@ -86,39 +83,78 @@ export const AuthProvider = ({ children }) => {
       }
     });
 
-    // getRedirectResult as a safety net — catches cases where
-    // onAuthStateChanged fires BEFORE the redirect result is available
+    // getRedirectResult as safety net — catches cases where onAuthStateChanged
+    // fires before the redirect state is fully available
     if (wasRedirecting) {
       getRedirectResult(auth)
         .then(async (result) => {
-          // If onAuthStateChanged already handled this, skip
-          if (result?.user && !processingGoogle.current) {
-            processingGoogle.current = true;
-            sessionStorage.removeItem(REDIRECT_FLAG);
+          if (result?.user && !googleProcessed.current) {
+            googleProcessed.current = true;
             try {
               const u = await exchangeGoogleToken(result.user);
               toast.success(`Welcome, ${u.name?.split(' ')[0] || 'back'} 👋`, { duration: 3000 });
             } catch (err) {
-              toast.error(err?.response?.data?.message || 'Google sign-in failed.');
+              localStorage.removeItem(REDIRECT_FLAG);
+              toast.error(err?.response?.data?.message || 'Sign-in failed. Please try again.');
             } finally {
               setLoading(false);
             }
+          } else if (!result) {
+            // Redirect result is null — flag cleanup to avoid infinite loading
+            localStorage.removeItem(REDIRECT_FLAG);
+            setLoading(false);
           }
         })
         .catch((err) => {
           const code = err?.code || '';
+          console.error('[Auth] getRedirectResult error:', code, err.message);
+          localStorage.removeItem(REDIRECT_FLAG);
           if (code && code !== 'auth/null-user') {
-            console.error('[AuthContext] getRedirectResult error:', code, err.message);
             toast.error('Google sign-in was interrupted. Please try again.');
-            sessionStorage.removeItem(REDIRECT_FLAG);
-            setLoading(false);
           }
+          setLoading(false);
         });
     }
 
     return () => unsubscribe();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ── Google Sign-In ─────────────────────────────────────────────────────────
+  // Strategy: ALWAYS try popup first (works on modern mobile Chrome + Safari).
+  // Only fall back to redirect if popup is genuinely blocked.
+  // This avoids the iOS Safari sessionStorage wipe problem entirely.
+  const loginWithGoogle = async () => {
+    try {
+      // signInWithPopup works on: desktop Chrome/Firefox/Safari, Android Chrome,
+      // iOS Safari 16.4+, iOS Chrome — as long as triggered by a user gesture.
+      const result = await signInWithPopup(auth, googleProvider);
+      const u = await exchangeGoogleToken(result.user);
+      toast.success(`Welcome, ${u.name?.split(' ')[0] || 'back'} 👋`, { duration: 3000 });
+      return u;
+    } catch (err) {
+      const code = err?.code || '';
+
+      if (
+        code === 'auth/popup-blocked' ||
+        code === 'auth/popup-closed-by-user' ||
+        code === 'auth/cancelled-popup-request'
+      ) {
+        // Popup was blocked or dismissed — fall back to redirect
+        // Use localStorage so the flag survives the redirect on all mobile browsers
+        localStorage.setItem(REDIRECT_FLAG, '1');
+        await signInWithRedirect(auth, googleProvider);
+        return; // page navigates away
+      }
+
+      // Any other error — surface it
+      const msg =
+        code === 'auth/unauthorized-domain'
+          ? 'This domain is not authorized for Google Sign-In. Contact the admin.'
+          : err?.response?.data?.message || err?.message || 'Google sign-in failed. Try again.';
+      throw new Error(msg);
+    }
+  };
 
   // ── Standard email/password login ─────────────────────────────────────────
   const login = async (email, password) => {
@@ -129,38 +165,6 @@ export const AuthProvider = ({ children }) => {
     setToken(t);
     setUser(u);
     return u;
-  };
-
-  // ── Google Sign-In ─────────────────────────────────────────────────────────
-  // Mobile: redirect (popup blocked by mobile browsers & in-app WebViews)
-  // Desktop: popup (better UX), falls back to redirect if blocked
-  const loginWithGoogle = async () => {
-    const isMobile = /Android|iPhone|iPad|iPod|Opera Mini|IEMobile|WPDesktop/i.test(
-      navigator.userAgent
-    );
-
-    if (isMobile) {
-      // Mark intent BEFORE redirecting so the listener knows to process it on return
-      sessionStorage.setItem(REDIRECT_FLAG, '1');
-      await signInWithRedirect(auth, googleProvider);
-      return; // page navigates away
-    }
-
-    // Desktop: popup
-    try {
-      const result = await signInWithPopup(auth, googleProvider);
-      const u = await exchangeGoogleToken(result.user);
-      return u;
-    } catch (err) {
-      const code = err?.code || '';
-      if (code === 'auth/popup-blocked' || code === 'auth/popup-closed-by-user') {
-        // Fall back to redirect
-        sessionStorage.setItem(REDIRECT_FLAG, '1');
-        await signInWithRedirect(auth, googleProvider);
-        return;
-      }
-      throw err;
-    }
   };
 
   // ── Register ───────────────────────────────────────────────────────────────
@@ -179,7 +183,7 @@ export const AuthProvider = ({ children }) => {
   // ── Logout ─────────────────────────────────────────────────────────────────
   const logout = async () => {
     localStorage.removeItem('evora_token');
-    sessionStorage.removeItem(REDIRECT_FLAG);
+    localStorage.removeItem(REDIRECT_FLAG);
     delete API.defaults.headers.common['Authorization'];
     setToken(null);
     setUser(null);
