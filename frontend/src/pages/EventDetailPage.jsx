@@ -35,12 +35,75 @@ function formatTime(d) {
   if (!d) return '';
   return new Date(d).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 }
-function timeAgo(d) {
-  const s = Math.floor((Date.now() - new Date(d)) / 1000);
-  if (s < 60) return 'just now';
-  if (s < 3600) return `${Math.floor(s/60)}m ago`;
-  if (s < 86400) return `${Math.floor(s/3600)}h ago`;
-  return `${Math.floor(s/86400)}d ago`;
+function useCountdown(targetDate) {
+  const calc = () => {
+    const diff = new Date(targetDate) - Date.now();
+    if (diff <= 0) return null;
+    const d = Math.floor(diff / 86400000);
+    const h = Math.floor((diff % 86400000) / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    const s = Math.floor((diff % 60000) / 1000);
+    return { d, h, m, s, diff };
+  };
+  const [time, setTime] = useState(calc);
+  useEffect(() => {
+    const id = setInterval(() => setTime(calc()), 1000);
+    return () => clearInterval(id);
+  }, [targetDate]);
+  return time;
+}
+
+function CountdownBlock({ value, label, urgent, light }) {
+  const bg = urgent === 'red'
+    ? 'bg-red-500/90 text-white shadow-[0_0_12px_rgba(239,68,68,0.3)]'
+    : urgent === 'amber'
+    ? 'bg-amber-500/90 text-white shadow-[0_0_12px_rgba(245,158,11,0.2)]'
+    : light
+    ? 'bg-white/20 backdrop-blur-md text-white border border-white/30'
+    : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700';
+
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <motion.div 
+        key={value}
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className={`${bg} rounded-xl w-12 h-11 flex items-center justify-center font-black text-lg tabular-nums shadow-sm transition-all duration-300`}
+      >
+        {String(value).padStart(2, '0')}
+      </motion.div>
+      <span className="text-gray-400 dark:text-gray-500 text-[10px] font-black uppercase tracking-widest">{label}</span>
+    </div>
+  );
+}
+
+function Countdown({ date, light = false }) {
+  const t = useCountdown(date);
+  if (!t) return (
+    <div className="mt-4 p-4 rounded-2xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800/40 flex items-center justify-center gap-3">
+      <span className="relative flex h-3 w-3">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
+        <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+      </span>
+      <span className="text-sm font-black text-green-700 dark:text-green-400 uppercase tracking-wider">Event is Happening Now!</span>
+    </div>
+  );
+  
+  const urgent = t.diff < 86400000 ? 'red' : t.diff < 259200000 ? 'amber' : 'none';
+  const sep = <span className="text-gray-300 dark:text-gray-700 text-xl font-black mt-2">:</span>;
+  
+  return (
+    <div className="mt-6 p-6 rounded-3xl bg-gray-50/50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-700/50 backdrop-blur-sm">
+      <div className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-4 text-center">Event Starts In</div>
+      <div className="flex items-start justify-center gap-3">
+        {t.d > 0 && <CountdownBlock value={t.d} label="Days" urgent={urgent} light={light} />}
+        {t.d > 0 && sep}
+        <CountdownBlock value={t.h} label="Hours" urgent={urgent} light={light} />
+        {sep}
+        <CountdownBlock value={t.m} label="Mins" urgent={urgent} light={light} />
+      </div>
+    </div>
+  );
 }
 
 export default function EventDetailPage() {
@@ -289,11 +352,13 @@ export default function EventDetailPage() {
 
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">{event.description}</p>
 
+            <Countdown date={event.date} />
+
             {/* Added by / Source badge */}
             <div className="flex flex-wrap items-center gap-2 mt-4">
               {event.addedBy === 'AI' ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800/40">
-                  🤖 AI Curated Event
+                  🤖 Added by AI
                 </span>
               ) : event.submittedBy?.name ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800/40">

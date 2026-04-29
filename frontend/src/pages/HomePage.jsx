@@ -151,19 +151,27 @@ function useCountdown(targetDate) {
 }
 
 function CountdownBlock({ value, label, urgent, light }) {
+  const isUrgent = urgent === 'red' || urgent === 'amber';
+  
   const bg = urgent === 'red'
-    ? 'bg-red-500 text-white'
+    ? 'bg-red-500/90 text-white shadow-[0_0_12px_rgba(239,68,68,0.3)]'
     : urgent === 'amber'
-    ? 'bg-amber-500 text-white'
+    ? 'bg-amber-500/90 text-white shadow-[0_0_12px_rgba(245,158,11,0.2)]'
     : light
-    ? 'bg-white/25 backdrop-blur-sm text-white border border-white/30'
-    : 'bg-gray-900 dark:bg-gray-700 text-white';
+    ? 'bg-white/20 backdrop-blur-md text-white border border-white/30'
+    : 'bg-gray-900/90 dark:bg-gray-800/90 backdrop-blur-sm text-white border border-gray-700/50';
+
   return (
-    <div className="flex flex-col items-center">
-      <div className={`${bg} rounded-md w-8 h-7 flex items-center justify-center font-mono font-bold text-xs tabular-nums transition-colors`}>
+    <div className="flex flex-col items-center gap-0.5">
+      <motion.div 
+        key={value}
+        initial={{ y: 2, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        className={`${bg} rounded-lg w-9 h-8 flex items-center justify-center font-bold text-sm tabular-nums transition-all duration-300`}
+      >
         {String(value).padStart(2, '0')}
-      </div>
-      <span className={`${light ? 'text-white/60' : 'text-gray-400'} text-[9px] mt-0.5 uppercase tracking-wide`}>{label}</span>
+      </motion.div>
+      <span className={`${light ? 'text-white/70' : 'text-gray-500'} text-[8px] font-black uppercase tracking-widest`}>{label}</span>
     </div>
   );
 }
@@ -171,21 +179,24 @@ function CountdownBlock({ value, label, urgent, light }) {
 function Countdown({ date, light = false }) {
   const t = useCountdown(date);
   if (!t) return (
-    <span className={`inline-flex items-center gap-1 text-xs font-semibold ${light ? 'text-green-300' : 'text-green-500'}`}>
-      🟢 Happening Now!
+    <span className={`inline-flex items-center gap-1.5 text-xs font-black ${light ? 'text-green-300' : 'text-green-500'}`}>
+      <span className="relative flex h-2 w-2">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
+        <span className="relative inline-flex rounded-full h-2 w-2 bg-current"></span>
+      </span>
+      HAPPENING NOW
     </span>
   );
   const urgent = t.diff < 86400000 ? 'red' : t.diff < 259200000 ? 'amber' : 'none';
-  const sep = <span className={`${light ? 'text-white/50' : 'text-gray-400'} text-xs font-bold mb-3.5`}>:</span>;
+  const sep = <span className={`${light ? 'text-white/40' : 'text-gray-300'} text-xs font-black mt-2`}>:</span>;
+  
   return (
-    <div className="flex items-end gap-1">
+    <div className="flex items-start gap-1.5">
       {t.d > 0 && <CountdownBlock value={t.d} label="Day" urgent={urgent} light={light} />}
       {t.d > 0 && sep}
       <CountdownBlock value={t.h} label="Hr" urgent={urgent} light={light} />
       {sep}
       <CountdownBlock value={t.m} label="Min" urgent={urgent} light={light} />
-      {sep}
-      <CountdownBlock value={t.s} label="Sec" urgent={urgent} light={light} />
     </div>
   );
 }
@@ -210,8 +221,17 @@ const fadeUpItem = {
 // Infinite marquee — no scroll needed
 
 export default function HomePage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [searchParams] = useSearchParams();
+
+  // Show a welcome toast after Google redirect sign-in
+  useEffect(() => {
+    const name = sessionStorage.getItem('evora_welcome');
+    if (name && user) {
+      sessionStorage.removeItem('evora_welcome');
+      toast.success(`Welcome, ${name}! 👋`);
+    }
+  }, [user]);
   const [events, setEvents] = useState([]);
   const [recentWeekEvents, setRecentWeekEvents] = useState([]);
   const [recentWeekLoading, setRecentWeekLoading] = useState(true);
