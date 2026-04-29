@@ -473,14 +473,17 @@ function DuplicatesTab() {
   );
 
   return (
-    <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} className="space-y-5">
-
-      {/* Merge Modal */}
-      {mergeModal && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4" onClick={() => { setMergeModal(null); setKeepId(''); }}>
+    <>
+      {/* Merge Modal — rendered via portal so position:fixed escapes the motion.div stacking context */}
+      {mergeModal && createPortal(
+        <div
+          className="fixed inset-0 z-[200] bg-black/70 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => { setMergeModal(null); setKeepId(''); }}
+        >
           <motion.div
             initial={{ opacity:0, scale:0.95, y:20 }}
             animate={{ opacity:1, scale:1, y:0 }}
+            transition={{ type:'spring', stiffness:340, damping:28 }}
             onClick={e => e.stopPropagation()}
             className="w-full max-w-xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden"
           >
@@ -491,19 +494,19 @@ function DuplicatesTab() {
             <div className="p-5 space-y-3">
               {mergeModal.group.events.map(ev => (
                 <button
-                  key={ev._id}
-                  onClick={() => setKeepId(ev._id)}
+                  key={String(ev._id)}
+                  onClick={() => setKeepId(String(ev._id))}
                   className={`w-full text-left p-4 rounded-xl border-2 transition-all ${
-                    keepId === ev._id
+                    keepId === String(ev._id)
                       ? 'border-green-500 bg-green-50 dark:bg-green-900/20'
                       : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <span className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${
-                      keepId === ev._id ? 'border-green-500 bg-green-500' : 'border-gray-300 dark:border-gray-600'
+                      keepId === String(ev._id) ? 'border-green-500 bg-green-500' : 'border-gray-300 dark:border-gray-600'
                     }`}>
-                      {keepId === ev._id && <span className="text-white text-xs">✓</span>}
+                      {keepId === String(ev._id) && <span className="text-white text-xs">✓</span>}
                     </span>
                     <span className="font-bold text-sm text-gray-900 dark:text-white">{ev.name}</span>
                     <span className={`ml-auto text-xs px-2 py-0.5 rounded-full ${
@@ -533,7 +536,8 @@ function DuplicatesTab() {
               </button>
             </div>
           </motion.div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* Header */}
@@ -589,15 +593,13 @@ function DuplicatesTab() {
 
           {/* Side-by-side event comparison */}
           <div className="divide-y divide-gray-50 dark:divide-gray-800">
-            {group.events.map((ev, idx) => (
-              <div key={ev._id} className="p-4 flex gap-4">
-                {/* Image */}
+            {group.events.map((ev) => (
+              <div key={String(ev._id)} className="p-4 flex gap-4">
                 {ev.images?.[0] ? (
                   <img src={ev.images[0]} alt="" className="w-20 h-16 rounded-xl object-cover flex-shrink-0" />
                 ) : (
                   <div className="w-20 h-16 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl flex-shrink-0">🎪</div>
                 )}
-                {/* Details */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <p className="font-bold text-sm text-gray-900 dark:text-white line-clamp-1">{ev.name}</p>
@@ -638,7 +640,7 @@ function DuplicatesTab() {
           </div>
         </div>
       ))}
-    </motion.div>
+    </>
   );
 }
 
