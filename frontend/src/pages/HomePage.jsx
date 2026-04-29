@@ -416,11 +416,8 @@ export default function HomePage() {
         {/* ── Global Filter Bar ── */}
         <div className="filter-bar mb-4 sm:mb-6 p-2.5 sm:p-3 rounded-2xl border border-gray-100 dark:border-dark-border shadow-card space-y-2">
 
-          {/* Row 1: Category pills */}
-          <div
-            className="flex gap-1.5 items-center overflow-x-auto"
-            style={{ msOverflowStyle: 'none', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
-          >
+          {/* Row 1: Category pills + Clear button */}
+          <div className="flex gap-1.5 items-center">
             <div
               className="relative flex items-center rounded-full p-0.5 sm:p-1 flex-shrink-0"
               style={{
@@ -463,13 +460,19 @@ export default function HomePage() {
                 </button>
               ))}
             </div>
+
+            {/* × Clear — sits right after the category pills */}
+            {(search || category !== 'All' || crowd !== 'All' || minRating || district) && (
+              <motion.button
+                initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                onClick={resetFilters}
+                className="text-xs font-semibold px-3 py-1.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors flex-shrink-0"
+              >× Clear</motion.button>
+            )}
           </div>
 
-          {/* Row 2: Dropdowns */}
-          <div
-            className="flex gap-2 items-center overflow-x-auto"
-            style={{ msOverflowStyle: 'none', scrollbarWidth: 'none', WebkitOverflowScrolling: 'touch' }}
-          >
+          {/* Row 2: Dropdowns — flex-wrap, no scroll */}
+          <div className="flex gap-2 items-center flex-wrap">
             {/* District / Place */}
             <GlassSelect
               icon="📍"
@@ -508,15 +511,6 @@ export default function HomePage() {
                 { value: '4.5', label: '4.5+ Stars' },
               ]}
             />
-
-            {/* Clear */}
-            {(search || category !== 'All' || crowd !== 'All' || minRating || district) && (
-              <motion.button
-                initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
-                onClick={resetFilters}
-                className="text-xs font-semibold px-3 py-1.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors flex-shrink-0"
-              >× Clear</motion.button>
-            )}
           </div>
         </div>
 
