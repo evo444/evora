@@ -207,6 +207,8 @@ function Countdown({ date, light = false }) {
       <Unit val={t.h} lbl="hr" />
       <span className={`${dotColor} text-xs font-bold`}>·</span>
       <Unit val={t.m} lbl="min" />
+      <span className={`${dotColor} text-xs font-bold`}>·</span>
+      <Unit val={t.s} lbl="sec" />
     </div>
   );
 }

@@ -164,6 +164,8 @@ function Countdown({ date }) {
         <Unit val={t.h} lbl="Hours" />
         <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: 28, fontWeight: 300, marginTop: 22, lineHeight: 1 }}>:</span>
         <Unit val={t.m} lbl="Mins" />
+        <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: 28, fontWeight: 300, marginTop: 22, lineHeight: 1 }}>:</span>
+        <Unit val={t.s} lbl="Secs" />
       </div>
     </div>
   );
