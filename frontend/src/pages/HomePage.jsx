@@ -150,53 +150,63 @@ function useCountdown(targetDate) {
   return time;
 }
 
-function CountdownBlock({ value, label, urgent, light }) {
-  const isUrgent = urgent === 'red' || urgent === 'amber';
-  
-  const bg = urgent === 'red'
-    ? 'bg-red-500/90 text-white shadow-[0_0_12px_rgba(239,68,68,0.3)]'
-    : urgent === 'amber'
-    ? 'bg-amber-500/90 text-white shadow-[0_0_12px_rgba(245,158,11,0.2)]'
-    : light
-    ? 'bg-white/20 backdrop-blur-md text-white border border-white/30'
-    : 'bg-gray-900/90 dark:bg-gray-800/90 backdrop-blur-sm text-white border border-gray-700/50';
-
-  return (
-    <div className="flex flex-col items-center gap-0.5">
-      <motion.div 
-        key={value}
-        initial={{ y: 2, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        className={`${bg} rounded-lg w-9 h-8 flex items-center justify-center font-bold text-sm tabular-nums transition-all duration-300`}
-      >
-        {String(value).padStart(2, '0')}
-      </motion.div>
-      <span className={`${light ? 'text-white/70' : 'text-gray-500'} text-[8px] font-black uppercase tracking-widest`}>{label}</span>
-    </div>
-  );
-}
-
+// ── Compact inline countdown pill for "This Week" cards ──
 function Countdown({ date, light = false }) {
   const t = useCountdown(date);
+
   if (!t) return (
-    <span className={`inline-flex items-center gap-1.5 text-xs font-black ${light ? 'text-green-300' : 'text-green-500'}`}>
-      <span className="relative flex h-2 w-2">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-current opacity-75"></span>
-        <span className="relative inline-flex rounded-full h-2 w-2 bg-current"></span>
+    <span className="inline-flex items-center gap-1.5 text-[10px] font-black text-green-500 dark:text-green-400 uppercase tracking-wider">
+      <span className="relative flex h-1.5 w-1.5">
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
+        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
       </span>
-      HAPPENING NOW
+      Live Now
     </span>
   );
+
   const urgent = t.diff < 86400000 ? 'red' : t.diff < 259200000 ? 'amber' : 'none';
-  const sep = <span className={`${light ? 'text-white/40' : 'text-gray-300'} text-xs font-black mt-2`}>:</span>;
-  
+
+  const pillBg = urgent === 'red'
+    ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800/40'
+    : urgent === 'amber'
+    ? 'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-800/40'
+    : light
+    ? 'bg-white/15 border-white/20'
+    : 'bg-gray-50 dark:bg-gray-800/60 border-gray-200 dark:border-gray-700/60';
+
+  const numColor = urgent === 'red'
+    ? 'text-red-600 dark:text-red-400'
+    : urgent === 'amber'
+    ? 'text-amber-600 dark:text-amber-400'
+    : light ? 'text-white' : 'text-gray-900 dark:text-white';
+
+  const dotColor = urgent === 'red'
+    ? 'text-red-300 dark:text-red-700'
+    : urgent === 'amber'
+    ? 'text-amber-300 dark:text-amber-700'
+    : 'text-gray-300 dark:text-gray-600';
+
+  const Unit = ({ val, lbl }) => (
+    <span className="flex flex-col items-center leading-none">
+      <motion.span
+        key={val}
+        initial={{ y: -5, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+        className={`font-black text-sm tabular-nums ${numColor}`}
+      >
+        {String(val).padStart(2, '0')}
+      </motion.span>
+      <span className={`${light ? 'text-white/50' : 'text-gray-400 dark:text-gray-500'} text-[8px] font-bold uppercase tracking-widest mt-0.5`}>{lbl}</span>
+    </span>
+  );
+
   return (
-    <div className="flex items-start gap-1.5">
-      {t.d > 0 && <CountdownBlock value={t.d} label="Day" urgent={urgent} light={light} />}
-      {t.d > 0 && sep}
-      <CountdownBlock value={t.h} label="Hr" urgent={urgent} light={light} />
-      {sep}
-      <CountdownBlock value={t.m} label="Min" urgent={urgent} light={light} />
+    <div className={`inline-flex items-center gap-2.5 px-3 py-1.5 rounded-xl border ${pillBg}`}>
+      {t.d > 0 && <><Unit val={t.d} lbl="d" /><span className={`${dotColor} text-xs font-bold`}>·</span></>}
+      <Unit val={t.h} lbl="hr" />
+      <span className={`${dotColor} text-xs font-bold`}>·</span>
+      <Unit val={t.m} lbl="min" />
     </div>
   );
 }

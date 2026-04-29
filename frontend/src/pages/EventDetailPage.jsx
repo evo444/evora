@@ -53,58 +53,122 @@ function useCountdown(targetDate) {
   return time;
 }
 
-function CountdownBlock({ value, label, urgent, light }) {
-  const bg = urgent === 'red'
-    ? 'bg-red-500/90 text-white shadow-[0_0_12px_rgba(239,68,68,0.3)]'
-    : urgent === 'amber'
-    ? 'bg-amber-500/90 text-white shadow-[0_0_12px_rgba(245,158,11,0.2)]'
-    : light
-    ? 'bg-white/20 backdrop-blur-md text-white border border-white/30'
-    : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white border border-gray-200 dark:border-gray-700';
-
-  return (
-    <div className="flex flex-col items-center gap-1">
-      <motion.div 
-        key={value}
-        initial={{ scale: 0.9, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className={`${bg} rounded-xl w-12 h-11 flex items-center justify-center font-black text-lg tabular-nums shadow-sm transition-all duration-300`}
-      >
-        {String(value).padStart(2, '0')}
-      </motion.div>
-      <span className="text-gray-400 dark:text-gray-500 text-[10px] font-black uppercase tracking-widest">{label}</span>
-    </div>
-  );
-}
-
-function Countdown({ date, light = false }) {
+// ── Premium countdown for Event Detail Page ──
+function Countdown({ date }) {
   const t = useCountdown(date);
+
+  // ── Live Now state ──
   if (!t) return (
-    <div className="mt-4 p-4 rounded-2xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-800/40 flex items-center justify-center gap-3">
+    <div className="mt-6 flex items-center justify-center gap-3 px-6 py-4 rounded-2xl"
+      style={{
+        background: 'linear-gradient(135deg, #052e16 0%, #14532d 100%)',
+        border: '1px solid rgba(74,222,128,0.25)',
+        boxShadow: '0 0 32px rgba(34,197,94,0.12)',
+      }}>
       <span className="relative flex h-3 w-3">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75"></span>
-        <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+        <span className="relative inline-flex rounded-full h-3 w-3 bg-green-400" />
       </span>
-      <span className="text-sm font-black text-green-700 dark:text-green-400 uppercase tracking-wider">Event is Happening Now!</span>
+      <span className="text-green-400 font-black text-base tracking-widest uppercase">Happening Right Now!</span>
     </div>
   );
-  
+
   const urgent = t.diff < 86400000 ? 'red' : t.diff < 259200000 ? 'amber' : 'none';
-  const sep = <span className="text-gray-300 dark:text-gray-700 text-xl font-black mt-2">:</span>;
-  
+
+  const accentColor = urgent === 'red'
+    ? '#f87171'
+    : urgent === 'amber'
+    ? '#fbbf24'
+    : '#e2e8f0';
+
+  const glowColor = urgent === 'red'
+    ? 'rgba(239,68,68,0.15)'
+    : urgent === 'amber'
+    ? 'rgba(245,158,11,0.12)'
+    : 'transparent';
+
+  const Unit = ({ val, lbl }) => (
+    <div className="flex flex-col items-center gap-2">
+      <div style={{
+        background: 'rgba(255,255,255,0.04)',
+        border: '1px solid rgba(255,255,255,0.08)',
+        borderRadius: 16,
+        minWidth: 72,
+        height: 72,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}>
+        <motion.span
+          key={val}
+          initial={{ y: -12, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ type: 'spring', stiffness: 600, damping: 32 }}
+          style={{
+            fontSize: 36,
+            fontWeight: 900,
+            fontVariantNumeric: 'tabular-nums',
+            color: accentColor,
+            lineHeight: 1,
+            textShadow: urgent !== 'none' ? `0 0 24px ${accentColor}55` : 'none',
+            letterSpacing: '-0.02em',
+          }}
+        >
+          {String(val).padStart(2, '0')}
+        </motion.span>
+      </div>
+      <span style={{
+        fontSize: 10,
+        fontWeight: 800,
+        textTransform: 'uppercase',
+        letterSpacing: '0.18em',
+        color: 'rgba(148,163,184,0.7)',
+      }}>{lbl}</span>
+    </div>
+  );
+
   return (
-    <div className="mt-6 p-6 rounded-3xl bg-gray-50/50 dark:bg-gray-800/30 border border-gray-100 dark:border-gray-700/50 backdrop-blur-sm">
-      <div className="text-[10px] font-black text-gray-400 dark:text-gray-500 uppercase tracking-[0.2em] mb-4 text-center">Event Starts In</div>
-      <div className="flex items-start justify-center gap-3">
-        {t.d > 0 && <CountdownBlock value={t.d} label="Days" urgent={urgent} light={light} />}
-        {t.d > 0 && sep}
-        <CountdownBlock value={t.h} label="Hours" urgent={urgent} light={light} />
-        {sep}
-        <CountdownBlock value={t.m} label="Mins" urgent={urgent} light={light} />
+    <div className="mt-6 rounded-2xl overflow-hidden" style={{
+      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+      border: '1px solid rgba(255,255,255,0.07)',
+      boxShadow: `0 8px 32px rgba(0,0,0,0.3), inset 0 0 80px ${glowColor}`,
+    }}>
+      {/* Header bar */}
+      <div style={{
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        padding: '10px 24px',
+        display: 'flex',
+        alignItems: 'center',
+        gap: 8,
+      }}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={accentColor} strokeWidth="2.5">
+          <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+        </svg>
+        <span style={{
+          fontSize: 10,
+          fontWeight: 800,
+          textTransform: 'uppercase',
+          letterSpacing: '0.2em',
+          color: 'rgba(148,163,184,0.8)',
+        }}>Starts In</span>
+      </div>
+
+      {/* Numbers */}
+      <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', gap: 12 }}>
+        {t.d > 0 && (
+          <>
+            <Unit val={t.d} lbl="Days" />
+            <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: 28, fontWeight: 300, marginTop: 22, lineHeight: 1 }}>:</span>
+          </>
+        )}
+        <Unit val={t.h} lbl="Hours" />
+        <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: 28, fontWeight: 300, marginTop: 22, lineHeight: 1 }}>:</span>
+        <Unit val={t.m} lbl="Mins" />
       </div>
     </div>
   );
 }
+
 
 export default function EventDetailPage() {
   const { id } = useParams();
