@@ -10,7 +10,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import toast from 'react-hot-toast';
 
 /* ── Premium Glass Dropdown (Portal-based — immune to overflow clipping) ── */
-function GlassSelect({ icon, value, onChange, options, placeholder }) {
+function GlassSelect({ icon, value, onChange, options, placeholder, className = '' }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
   const btnRef = useRef(null);
@@ -99,13 +99,13 @@ function GlassSelect({ icon, value, onChange, options, placeholder }) {
   );
 
   return (
-    <div className="relative">
+    <div className={`relative ${className}`}>
       <button
         ref={btnRef}
         onClick={handleOpen}
-        className="flex items-center gap-2 rounded-full text-xs font-semibold transition-all duration-200 select-none"
+        className="w-full flex items-center gap-1.5 rounded-full text-xs font-semibold transition-all duration-200 select-none"
         style={{
-          padding: '7px 14px 7px 12px',
+          padding: '6px 10px 6px 10px',
           background: open ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.18)',
           backdropFilter: 'blur(14px)',
           WebkitBackdropFilter: 'blur(14px)',
@@ -117,11 +117,11 @@ function GlassSelect({ icon, value, onChange, options, placeholder }) {
         }}
       >
         <span>{icon}</span>
-        <span style={{ opacity: value ? 1 : 0.7 }}>{selected ? selected.label : placeholder}</span>
+        <span className="truncate flex-1 text-left" style={{ opacity: value ? 1 : 0.7 }}>{selected ? selected.label : placeholder}</span>
         <motion.svg
           animate={{ rotate: open ? 180 : 0 }}
           transition={{ duration: 0.2 }}
-          className="w-3 h-3 opacity-50"
+          className="w-3 h-3 opacity-50 flex-shrink-0"
           fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}
         >
           <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
@@ -471,14 +471,15 @@ export default function HomePage() {
             )}
           </div>
 
-          {/* Row 2: Dropdowns — flex-wrap, no scroll */}
-          <div className="flex gap-2 items-center flex-wrap">
+          {/* Row 2: Dropdowns — all 3 on one line, equal width */}
+          <div className="flex gap-1.5 items-center">
             {/* District / Place */}
             <GlassSelect
               icon="📍"
               placeholder="All Places"
               value={district}
               onChange={v => { setDistrict(v); setPage(1); }}
+              className="flex-1 min-w-0"
               options={[
                 { value: '', label: 'All Places' },
                 ...[...new Set(events.map(e => e.location?.district).filter(Boolean))].sort()
@@ -492,6 +493,7 @@ export default function HomePage() {
               placeholder="All Crowds"
               value={crowd}
               onChange={v => { setCrowd(v); setPage(1); }}
+              className="flex-1 min-w-0"
               options={CROWD_LEVELS.map(c => ({
                 value: c,
                 label: c === 'All' ? 'All Crowds' : c.charAt(0).toUpperCase() + c.slice(1),
@@ -504,6 +506,7 @@ export default function HomePage() {
               placeholder="Any Rating"
               value={minRating}
               onChange={v => { setMinRating(v); setPage(1); }}
+              className="flex-1 min-w-0"
               options={[
                 { value: '', label: 'Any Rating' },
                 { value: '3', label: '3+ Stars' },
