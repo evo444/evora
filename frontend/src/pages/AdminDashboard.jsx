@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { createPortal } from 'react-dom';
+import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
@@ -8,6 +8,7 @@ import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { adminService, eventService } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { StarDisplay } from '../components/StarRating';
 import CrowdBadge from '../components/CrowdBadge';
 import toast from 'react-hot-toast';
@@ -25,7 +26,90 @@ const greenIcon = new L.Icon({
   iconSize: [25,41], iconAnchor: [12,41], popupAnchor: [1,-34], shadowSize: [41,41],
 });
 
-const tabs = ['Overview', 'Events', 'Submissions', 'Duplicates', 'Users', 'Feedback', 'Database'];
+const tabs = ['Submissions', 'Overview', 'Events', 'Duplicates', 'Users', 'Feedback', 'Database'];
+
+/* ── Premium Glass Dropdown (Portal-based) ── */
+function GlassSelect({ icon, value, onChange, options, placeholder, className = '' }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
+  const btnRef = React.useRef(null);
+  const panelRef = React.useRef(null);
+  const { darkMode } = useTheme();
+  const selected = options.find(o => o.value === value);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e) => {
+      if (btnRef.current && !btnRef.current.contains(e.target) && panelRef.current && !panelRef.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [open]);
+
+  const handleOpen = () => {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setPos({ top: r.bottom + window.scrollY + 6, left: r.left + window.scrollX, width: Math.max(r.width, 180) });
+    }
+    setOpen(o => !o);
+  };
+
+  const panel = open && ReactDOM.createPortal(
+    <motion.div
+      ref={panelRef}
+      initial={{ opacity: 0, y: -6, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -6, scale: 0.97 }}
+      transition={{ type: 'spring', stiffness: 400, damping: 32 }}
+      className="fixed z-[200] overflow-hidden rounded-2xl border shadow-2xl backdrop-blur-3xl"
+      style={{
+        top: pos.top - window.scrollY,
+        left: pos.left,
+        minWidth: pos.width,
+        backgroundColor: darkMode ? 'rgba(30,32,38,0.96)' : 'rgba(255,255,255,0.95)',
+        borderColor: darkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)',
+      }}
+    >
+      {options.map((opt, i) => (
+        <button
+          key={opt.value}
+          onClick={() => { onChange(opt.value); setOpen(false); }}
+          className={`w-full text-left px-4 py-2.5 text-sm font-semibold transition-colors flex items-center justify-between group ${
+            value === opt.value 
+              ? 'text-green-500 bg-green-500/10' 
+              : darkMode ? 'text-gray-300 hover:bg-white/5' : 'text-gray-700 hover:bg-black/5'
+          }`}
+          style={{ borderBottom: i < options.length - 1 ? (darkMode ? '1px solid rgba(255,255,255,0.05)' : '1px solid rgba(0,0,0,0.05)') : 'none' }}
+        >
+          <span>{opt.label}</span>
+          {value === opt.value ? <span className="text-xs">✓</span> : opt.count > 0 && (
+            <span className="min-w-[1.2rem] h-[1.2rem] rounded-full bg-orange-500 text-white text-[10px] flex items-center justify-center px-1 font-bold">
+              {opt.count}
+            </span>
+          )}
+        </button>
+      ))}
+    </motion.div>,
+    document.body
+  );
+
+  return (
+    <div className={`relative ${className}`}>
+      <button ref={btnRef} onClick={handleOpen} className={`w-full flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 transition-all text-sm font-bold ${
+        open ? 'border-gray-900 dark:border-white bg-gray-900 dark:bg-white text-white dark:text-gray-900' : 'bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:border-gray-300'
+      }`}>
+        <span className="flex-1 text-left">{selected ? selected.label : placeholder}</span>
+        {selected?.count > 0 && !open && (
+           <span className="w-5 h-5 rounded-full bg-orange-500 text-white text-[10px] flex items-center justify-center font-bold">{selected.count}</span>
+        )}
+        <motion.svg animate={{ rotate: open ? 180 : 0 }} className="w-4 h-4 opacity-40" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </motion.svg>
+      </button>
+      {panel}
+    </div>
+  );
+}
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 // Build a safe image URL — handles all storage formats:
@@ -130,7 +214,7 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, onDeleteDup
           <motion.div initial={{ opacity: 0, y: 30, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20 }} transition={{ type:'spring', stiffness:300, damping:28 }}
             onClick={e => e.stopPropagation()}
-            className="w-full max-w-3xl bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden mb-4 sm:mb-10">
+            className="w-full max-w-3xl bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden mb-4 sm:mb-10 mx-auto">
 
             {/* ─── Image Gallery Header ─── */}
             <div className="relative bg-gray-900" style={{ minHeight: 180 }}>
@@ -178,8 +262,8 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, onDeleteDup
               {/* Title + category + meta */}
               <div>
                 <div className="flex items-start justify-between gap-3 mb-2">
-                  <h2 className="text-2xl font-black text-gray-900 dark:text-white leading-tight">{sub.name}</h2>
-                  <span className="badge bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex-shrink-0 text-sm px-3 py-1">{sub.category}</span>
+                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight">{sub.name}</h2>
+                  <span className="badge bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex-shrink-0 text-xs px-2 py-0.5">{sub.category}</span>
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
                   <span>📅 {fmtDate(sub.date)} {fmtTime(sub.date) && `· ${fmtTime(sub.date)}`}</span>
@@ -487,9 +571,9 @@ function DuplicatesTab() {
             onClick={e => e.stopPropagation()}
             className="w-full max-w-xl bg-white dark:bg-gray-900 rounded-2xl shadow-2xl overflow-hidden"
           >
-            <div className="p-5 border-b border-gray-100 dark:border-gray-800">
-              <h3 className="font-black text-gray-900 dark:text-white text-lg">🧠 Smart Merge</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Choose which event to <strong>keep</strong>. The other will be merged into it and deleted. Combined tags, images, and descriptions are preserved automatically.</p>
+            <div className="p-4 sm:p-5 border-b border-gray-100 dark:border-gray-800">
+              <h3 className="font-bold text-gray-900 dark:text-white text-lg">🧠 Smart Merge</h3>
+              <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 mt-1">Choose which event to <strong>keep</strong>. The other will be merged into it and deleted. Combined tags, images, and descriptions are preserved automatically.</p>
             </div>
             <div className="p-5 space-y-3">
               {mergeModal.group.events.map(ev => (
@@ -543,8 +627,8 @@ function DuplicatesTab() {
       {/* Header */}
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-lg font-black text-gray-900 dark:text-white">🔄 Duplicate Detection</h2>
-          <p className="text-xs text-gray-400 dark:text-gray-500 mt-0.5">AI-powered scan of all events — scored by title similarity + date proximity + location</p>
+          <h2 className="text-base sm:text-lg font-bold text-gray-900 dark:text-white">🔄 Duplicate Detection</h2>
+          <p className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 mt-0.5">AI-powered scan of all events — scored by similarity</p>
         </div>
         <button onClick={fetchDuplicates} className="btn-secondary text-sm flex items-center gap-1.5">
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
@@ -585,7 +669,7 @@ function DuplicatesTab() {
               </div>
             </div>
             <div className="flex items-center gap-2">
-              <span className={`text-xs font-black px-2.5 py-1 rounded-full border ${scoreColor(group.score)}`}>
+              <span className={`text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-full border ${scoreColor(group.score)}`}>
                 {group.score}% match
               </span>
             </div>
@@ -646,7 +730,7 @@ function DuplicatesTab() {
 
 export default function AdminDashboard() {
   const { isAdmin } = useAuth();
-  const [activeTab, setActiveTab] = useState('Overview');
+  const [activeTab, setActiveTab] = useState('Submissions');
   const [analytics, setAnalytics] = useState(null);
   const [users, setUsers] = useState([]);
   const [events, setEvents] = useState([]);
@@ -758,7 +842,7 @@ export default function AdminDashboard() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
       {/* ── Submission Preview Modal ── */}
-      {previewSub && createPortal(
+      {previewSub && ReactDOM.createPortal(
         <SubmissionPreviewModal
           sub={previewSub}
           onClose={() => setPreviewSub(null)}
@@ -774,28 +858,30 @@ export default function AdminDashboard() {
 
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-black text-gray-900 dark:text-white">👑 Admin Dashboard</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Manage Evora</p>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">👑 Admin Dashboard</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">Manage Zzon</p>
         </div>
-        <Link to="/admin/events/new" className="btn-primary flex items-center gap-2">
-          <span>+</span> New Event
-        </Link>
+        {/* Only show "New Event" on localhost, hidden on netlify zzon website */}
+        {!window.location.hostname.includes('netlify.app') && (
+          <Link to="/admin/events/new" className="btn-primary py-2 px-3 sm:px-4 text-xs sm:text-sm flex items-center gap-1.5 rounded-xl">
+            <span>+</span> New <span className="hidden xs:inline">Event</span>
+          </Link>
+        )}
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 mb-6 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl w-fit flex-wrap">
-        {tabs.map(t => (
-          <button key={t} onClick={() => setActiveTab(t)}
-            className={`px-4 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-1.5 ${activeTab === t ? 'bg-white dark:bg-gray-700 shadow text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}>
-            {t}
-            {t === 'Submissions' && submissions.filter(s => s.status === 'pending').length > 0 && (
-              <span className="inline-flex items-center justify-center min-w-[1.1rem] h-[1.1rem] rounded-full bg-orange-500 text-white text-xs font-bold px-1">
-                {submissions.filter(s => s.status === 'pending').length}
-              </span>
-            )}
-          </button>
-
-        ))}
+      {/* Tabs as GlassSelect */}
+      <div className="mb-6">
+        <GlassSelect 
+          value={activeTab}
+          onChange={setActiveTab}
+          options={tabs.map(t => ({
+            label: t,
+            value: t,
+            count: t === 'Submissions' ? submissions.filter(s => s.status === 'pending').length : 0
+          }))}
+          placeholder="Select Section"
+          className="w-full sm:max-w-[240px]"
+        />
       </div>
 
       {loading ? (

@@ -145,7 +145,7 @@ export default function SubmitEventPage() {
       <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="max-w-sm w-full text-center">
         <div className="card p-8">
           <div className="text-5xl mb-4">🔐</div>
-          <h2 className="text-xl font-black text-gray-900 dark:text-white mb-2">Login Required</h2>
+          <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Login Required</h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">Please login with Google to submit an event.</p>
           <motion.button
             onClick={handleGoogleLogin}
@@ -217,15 +217,15 @@ export default function SubmitEventPage() {
           className="w-24 h-24 rounded-full bg-gradient-to-br from-green-400 to-green-600 flex items-center justify-center mx-auto mb-6 shadow-green">
           <span className="text-5xl">🎉</span>
         </motion.div>
-        <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-3">Event Submitted!</h1>
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-3">Event Submitted!</h1>
         <p className="text-gray-500 dark:text-gray-400 mb-8 leading-relaxed">
-          Your event is now under review. Our team will check it within <strong>24–48 hours</strong> and it'll go live on Evora!
+          Your event is now under review. Our team will check it within <strong>24–48 hours</strong> and it'll go live on Zzon!
         </p>
         <div className="text-left bg-gray-50 dark:bg-dark-surface rounded-2xl p-5 mb-6 space-y-4">
           {[
             { icon: '✅', label: 'Submitted', sub: 'Your event is in the queue', done: true },
             { icon: '🔍', label: 'Admin Review', sub: 'Usually within 24–48 hours', done: false },
-            { icon: '🌍', label: 'Goes Live', sub: 'Visible to everyone on Evora 🌴', done: false },
+            { icon: '🌍', label: 'Goes Live', sub: 'Visible to everyone on Zzon 🌴', done: false },
           ].map((s, i) => (
             <div key={i} className="flex items-center gap-3">
               <div className={`w-9 h-9 rounded-full flex items-center justify-center text-sm flex-shrink-0 font-bold ${s.done ? 'bg-green-500 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-400'}`}>
@@ -256,7 +256,7 @@ export default function SubmitEventPage() {
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent to-green-700 flex items-center justify-center text-2xl shadow-green">🎪</div>
           <div>
-            <h1 className="text-2xl font-black text-gray-900 dark:text-white">Submit an Event</h1>
+            <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Submit an Event</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">Admin reviews & approves before it goes live</p>
           </div>
         </div>
@@ -271,7 +271,7 @@ export default function SubmitEventPage() {
           <motion.div key="s0" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="card p-6 space-y-5">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xl">📝</span>
-              <h2 className="font-black text-gray-900 dark:text-white">Basic Information</h2>
+              <h2 className="font-bold text-gray-900 dark:text-white">Basic Information</h2>
             </div>
 
             <div>
@@ -360,7 +360,7 @@ export default function SubmitEventPage() {
           <motion.div key="s1" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="card p-6 space-y-5">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xl">📍</span>
-              <h2 className="font-black text-gray-900 dark:text-white">Event Location</h2>
+              <h2 className="font-bold text-gray-900 dark:text-white">Event Location</h2>
             </div>
 
             <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/30 text-xs text-blue-700 dark:text-blue-300">
@@ -410,7 +410,7 @@ export default function SubmitEventPage() {
           <motion.div key="s2" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="card p-6 space-y-5">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xl">📸</span>
-              <h2 className="font-black text-gray-900 dark:text-white">Media & Organizer</h2>
+              <h2 className="font-bold text-gray-900 dark:text-white">Media & Organizer</h2>
             </div>
 
             <div>
@@ -457,7 +457,7 @@ export default function SubmitEventPage() {
           <motion.div key="s3" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="card p-6 space-y-4">
             <div className="flex items-center gap-2 mb-1">
               <span className="text-xl">✅</span>
-              <h2 className="font-black text-gray-900 dark:text-white">Review & Submit</h2>
+              <h2 className="font-bold text-gray-900 dark:text-white">Review & Submit</h2>
             </div>
 
             <div className="space-y-3">
@@ -466,7 +466,7 @@ export default function SubmitEventPage() {
                 <div className="flex gap-2 items-start">
                   <span className="text-lg">🎪</span>
                   <div>
-                    <p className="font-black text-gray-900 dark:text-white">{form.name}</p>
+                    <p className="font-bold text-gray-900 dark:text-white">{form.name}</p>
                     <p className="text-xs text-gray-500">{form.category} · Free Entry</p>
                   </div>
                 </div>

@@ -97,7 +97,7 @@ export default function RegisterPage() {
     setGoogleLoading(true);
     try {
       const u = await loginWithGoogle();
-      toast.success(`Welcome to Evora, ${u.name}! 🎉`);
+      toast.success(`Welcome to Zzon, ${u.name}! 🎉`);
       navigate('/');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Google sign-in failed');
@@ -155,7 +155,7 @@ export default function RegisterPage() {
         localStorage.setItem('evora_token', t);
         API.defaults.headers.common['Authorization'] = `Bearer ${t}`;
       }
-      toast.success(`Welcome to Evora, ${u.name}! 🎉`);
+      toast.success(`Welcome to Zzon, ${u.name}! 🎉`);
       navigate('/');
     } catch (err) {
       toast.error(err.response?.data?.message || 'Invalid OTP');
@@ -197,9 +197,7 @@ export default function RegisterPage() {
             {step === 1 ? (
               <motion.div key="step1" initial={{opacity:0,x:-20}} animate={{opacity:1,x:0}} exit={{opacity:0,x:-20}}>
                 <div className="text-center mb-6">
-                  <div className="w-14 h-14 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-glow">
-                    <span className="text-white font-black text-2xl">E</span>
-                  </div>
+                  <img src="/zzon-icon.png" alt="Zzon" className="w-14 h-14 rounded-2xl object-cover mx-auto mb-3" />
                   <h1 className="text-2xl font-black text-gray-900 dark:text-white">Create Account</h1>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">We'll send a verification OTP to your email</p>
                 </div>

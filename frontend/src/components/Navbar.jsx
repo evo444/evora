@@ -99,9 +99,8 @@ export default function Navbar() {
         <div className="flex items-center justify-between h-16">
 
           {/* Logo */}
-          <Link to="/" className="flex items-center gap-2 group flex-shrink-0">
-            <span className="text-xl font-black text-gray-900 dark:text-white tracking-tight">Evora</span>
-            <span className="hidden sm:block text-xs text-gray-500 dark:text-gray-400 font-medium border border-gray-200 dark:border-gray-700 rounded-full px-2 py-0.5">Kerala</span>
+          <Link to="/" className="flex items-center group flex-shrink-0">
+            <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Zzon</span>
           </Link>
 
           {/* Desktop Nav Links */}

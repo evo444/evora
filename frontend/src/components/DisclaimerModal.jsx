@@ -4,11 +4,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 
 const SECTIONS = [
   {
-    text: "Evora is built with the intention of bringing people closer to the vibrant events happening across Kerala. It is a community-driven platform where information is shared by users to help others discover experiences, cultures, and gatherings.",
+    text: "Zzon is built with the intention of bringing people closer to the vibrant events happening across Kerala. It is a community-driven platform where information is shared by users to help others discover experiences, cultures, and gatherings.",
   },
   {
     highlight: true,
-    text: "While we aim to keep the platform useful and updated, the event details such as date, time, location, and descriptions are provided by contributors. Evora does not guarantee complete accuracy or reliability of this information at all times.",
+    text: "While we aim to keep the platform useful and updated, the event details such as date, time, location, and descriptions are provided by contributors. Zzon does not guarantee complete accuracy or reliability of this information at all times.",
   },
   {
     text: "Every event listed here is reviewed at a basic level, but approval does not mean verification or endorsement. Situations may change, events may be modified or cancelled, and details may vary.",
@@ -18,17 +18,17 @@ const SECTIONS = [
     text: "We encourage all users to double-check event information from official sources before making plans or attending any event.",
   },
   {
-    text: "Evora is not responsible for any inconvenience, loss, damage, or issues that may arise from participating in events listed on this platform.",
+    text: "Zzon is not responsible for any inconvenience, loss, damage, or issues that may arise from participating in events listed on this platform.",
   },
   {
     text: "This space is created for the community, by the community. Every interaction, comment, and submission reflects the responsibility of the individual user behind it.",
   },
   {
-    text: "By using Evora, you acknowledge that it serves as an informational bridge, not as an organizer, authority, or controller of any event.",
+    text: "By using Zzon, you acknowledge that it serves as an informational bridge, not as an organizer, authority, or controller of any event.",
   },
   {
     italic: true,
-    text: "Let Evora guide you — but let your judgment lead you.",
+    text: "Let Zzon guide you — but let your judgment lead you.",
   },
 ];
 
@@ -57,12 +57,10 @@ export default function DisclaimerModal({ onClose }) {
             <div className="flex items-start justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2.5 mb-1">
-                  <div className="w-8 h-8 rounded-xl bg-gray-900 dark:bg-white flex items-center justify-center">
-                    <span className="text-white dark:text-gray-900 font-black text-sm">E</span>
-                  </div>
+                  <img src="/zzon-icon.png" alt="Zzon" className="w-8 h-8 rounded-xl object-cover" />
                   <h2 className="text-xl font-black text-gray-900 dark:text-white tracking-tight">Disclaimer</h2>
                 </div>
-                <p className="text-sm text-gray-400 dark:text-gray-500">Evora · Community Event Platform · Kerala</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500">Zzon · Community Event Platform · Kerala</p>
               </div>
               <button
                 onClick={onClose}

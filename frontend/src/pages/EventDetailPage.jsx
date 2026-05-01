@@ -54,24 +54,193 @@ function useCountdown(targetDate) {
 }
 
 // ── Premium countdown for Event Detail Page ──
-function Countdown({ date }) {
+function Countdown({ date, endDate }) {
   const t = useCountdown(date);
+  const te = useCountdown(endDate);
 
   // ── Live Now state ──
-  if (!t) return (
-    <div className="mt-6 flex items-center justify-center gap-3 px-6 py-4 rounded-2xl"
-      style={{
+  if (!t) {
+    // Event has started — check if we have an ending cooldown
+    const isEnding = endDate && te; // te exists means endDate is still in the future
+
+    if (isEnding) {
+      // Ending cooldown — same premium style as "Starts In" timer
+      const urgency = te.diff < 1800000 ? 'critical' : te.diff < 7200000 ? 'soon' : 'normal';
+      const accentEnd = urgency === 'critical' ? '#f87171' : urgency === 'soon' ? '#fb923c' : '#4ade80';
+      const bgEnd = urgency === 'critical'
+        ? 'linear-gradient(135deg, #2d0a0a 0%, #450a0a 100%)'
+        : urgency === 'soon'
+        ? 'linear-gradient(135deg, #1c0f00 0%, #431407 100%)'
+        : 'linear-gradient(135deg, #052e16 0%, #14532d 100%)';
+      const borderEnd = urgency === 'critical' ? 'rgba(248,113,113,0.35)' : urgency === 'soon' ? 'rgba(251,146,60,0.3)' : 'rgba(74,222,128,0.25)';
+      const glowEnd = urgency === 'critical' ? 'rgba(239,68,68,0.18)' : urgency === 'soon' ? 'rgba(251,146,60,0.14)' : 'rgba(34,197,94,0.14)';
+
+      const EndUnit = ({ val, lbl }) => (
+        <div className="flex flex-col items-center gap-2">
+          <div style={{
+            background: 'rgba(255,255,255,0.04)',
+            border: `1px solid ${accentEnd}22`,
+            borderRadius: 16,
+            minWidth: 72,
+            height: 72,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}>
+            <motion.span
+              key={val}
+              initial={{ y: -12, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 600, damping: 32 }}
+              style={{
+                fontSize: 36,
+                fontWeight: 900,
+                fontVariantNumeric: 'tabular-nums',
+                color: accentEnd,
+                lineHeight: 1,
+                letterSpacing: '-0.02em',
+                textShadow: `0 0 24px ${accentEnd}55`,
+              }}
+            >
+              {String(val).padStart(2, '0')}
+            </motion.span>
+          </div>
+          <span style={{
+            fontSize: 10,
+            fontWeight: 800,
+            textTransform: 'uppercase',
+            letterSpacing: '0.18em',
+            color: 'rgba(148,163,184,0.7)',
+          }}>{lbl}</span>
+        </div>
+      );
+
+      return (
+        <div className="mt-6 rounded-2xl overflow-hidden" style={{
+          background: bgEnd,
+          border: `1px solid ${borderEnd}`,
+          boxShadow: `0 8px 32px rgba(0,0,0,0.3), inset 0 0 80px ${glowEnd}`,
+        }}>
+          {/* Header bar — mirrors "Starts In" layout */}
+          <div style={{
+            borderBottom: `1px solid rgba(255,255,255,0.06)`,
+            padding: '10px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75" style={{ background: accentEnd }} />
+                <span className="relative inline-flex rounded-full h-2.5 w-2.5" style={{ background: accentEnd }} />
+              </span>
+              <span style={{
+                fontSize: 10,
+                fontWeight: 800,
+                textTransform: 'uppercase',
+                letterSpacing: '0.2em',
+                color: accentEnd,
+              }}>Live Now</span>
+            </div>
+            <span style={{
+              fontSize: 10,
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.2em',
+              color: 'rgba(148,163,184,0.8)',
+            }}>Ending In</span>
+          </div>
+
+          {/* Numbers — identical sizing/spacing to "Starts In" */}
+          <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', gap: 12 }}>
+            {te.d > 0 && (
+              <>
+                <EndUnit val={te.d} lbl="Days" />
+                <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: 28, fontWeight: 300, marginTop: 22, lineHeight: 1 }}>:</span>
+              </>
+            )}
+            <EndUnit val={te.h} lbl="Hours" />
+            <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: 28, fontWeight: 300, marginTop: 22, lineHeight: 1 }}>:</span>
+            <EndUnit val={te.m} lbl="Mins" />
+            <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: 28, fontWeight: 300, marginTop: 22, lineHeight: 1 }}>:</span>
+            <EndUnit val={te.s} lbl="Secs" />
+          </div>
+          {/* Date footer */}
+          <div style={{
+            borderTop: 'rgba(255,255,255,0.06) solid 1px',
+            padding: '10px 24px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 8,
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.6)" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+              <span style={{ fontSize: 11, color: 'rgba(148,163,184,0.7)', fontWeight: 600 }}>
+                Started {new Date(date).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+            {endDate && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.6)" strokeWidth="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+                <span style={{ fontSize: 11, color: 'rgba(148,163,184,0.7)', fontWeight: 600 }}>
+                  Ends {new Date(endDate).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </div>
+            )}
+          </div>
+        </div>
+      );
+    }
+
+    // No endDate or event fully ended — plain Live Now badge
+    return (
+      <div className="mt-6 rounded-2xl overflow-hidden" style={{
         background: 'linear-gradient(135deg, #052e16 0%, #14532d 100%)',
         border: '1px solid rgba(74,222,128,0.25)',
-        boxShadow: '0 0 32px rgba(34,197,94,0.12)',
+        boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 0 80px rgba(34,197,94,0.12)',
       }}>
-      <span className="relative flex h-3 w-3">
-        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
-        <span className="relative inline-flex rounded-full h-3 w-3 bg-green-400" />
-      </span>
-      <span className="text-green-400 font-black text-base tracking-widest uppercase">Happening Right Now!</span>
-    </div>
-  );
+        {/* Header */}
+        <div style={{
+          padding: '14px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 10,
+          borderBottom: '1px solid rgba(255,255,255,0.06)',
+        }}>
+          <span className="relative flex h-3 w-3">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-green-400" />
+          </span>
+          <span className="text-green-400 font-bold text-base tracking-widest uppercase">Happening Right Now!</span>
+        </div>
+        {/* Date footer */}
+        <div style={{
+          padding: '10px 24px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 8,
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.6)" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
+            <span style={{ fontSize: 11, color: 'rgba(148,163,184,0.7)', fontWeight: 600 }}>
+              Started {new Date(date).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+            </span>
+          </div>
+          {endDate && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.6)" strokeWidth="2.5"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+              <span style={{ fontSize: 11, color: 'rgba(148,163,184,0.7)', fontWeight: 600 }}>
+                Ends {new Date(endDate).toLocaleString('en-IN', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   const urgent = t.diff < 86400000 ? 'red' : t.diff < 259200000 ? 'amber' : 'none';
 
@@ -390,7 +559,7 @@ export default function EventDetailPage() {
 
           {/* Event Info */}
           <motion.div className="card p-6" initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:0.1}}>
-            <h1 className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white mb-3">{event.name}</h1>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-3">{event.name}</h1>
             
             <div className="flex flex-wrap gap-3 mb-4">
               <CrowdBadge crowd={event.crowd} />
@@ -418,7 +587,7 @@ export default function EventDetailPage() {
 
             <p className="text-gray-600 dark:text-gray-300 leading-relaxed whitespace-pre-line">{event.description}</p>
 
-            <Countdown date={event.date} />
+            <Countdown date={event.date} endDate={event.endDate} />
 
             {/* Added by / Source badge */}
             <div className="flex flex-wrap items-center gap-2 mt-4">
@@ -553,7 +722,7 @@ export default function EventDetailPage() {
                 <p className="text-xs text-gray-400 mt-0.5">{ratingData.total || 0} ratings · {comments.length} comments</p>
               </div>
               <div className="text-right">
-                <div className="text-2xl font-black text-gray-900 dark:text-white">{ratingData.average?.toFixed(1) || '0.0'}</div>
+                <div className="text-2xl font-bold text-gray-900 dark:text-white">{ratingData.average?.toFixed(1) || '0.0'}</div>
                 <StarDisplay rating={ratingData.average} total={ratingData.total} />
               </div>
             </div>

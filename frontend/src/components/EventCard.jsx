@@ -148,10 +148,10 @@ export default function EventCard({ event, index = 0, onDelete, onToggleTrending
           {/* Live Now indicator */}
           {isLive && (
             <div className="flex items-center gap-1.5">
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-green-50 dark:bg-green-900/25 border border-green-200 dark:border-green-800/40 text-green-600 dark:text-green-400">
-                <span className="relative flex h-1.5 w-1.5">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 text-green-600 dark:text-green-400">
+                <span className="relative flex h-1 w-1">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
+                  <span className="relative inline-flex rounded-full h-1 w-1 bg-green-500" />
                 </span>
                 Live Now
               </span>
@@ -173,15 +173,15 @@ export default function EventCard({ event, index = 0, onDelete, onToggleTrending
           {(event.addedBy === 'AI' || event.submittedBy?.name || event.addedBy === 'admin' || event.createdBy?.name) && (
             <div className="flex items-center gap-1.5 text-xs">
               {event.addedBy === 'AI' ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/30 font-medium">
-                  🤖 Added by AI
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/30 font-semibold text-[10px]">
+                  🤖 AI
                 </span>
               ) : event.submittedBy?.name ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-800/30 font-medium">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-800/30 font-semibold text-[10px]">
                   👤 {event.submittedBy.name}
                 </span>
               ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 border border-purple-100 dark:border-purple-800/30 font-medium">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 border border-purple-100 dark:border-purple-800/30 font-semibold text-[10px]">
                   👑 Admin
                 </span>
               )}

@@ -401,7 +401,7 @@ export default function HomePage() {
         <div className="max-w-4xl mx-auto text-center px-4">
           <motion.div initial={{opacity:0,y:-12}} animate={{opacity:1,y:0}} transition={{duration:0.45}}>
             <span className="text-gray-400 text-[10px] sm:text-xs font-semibold uppercase tracking-widest mb-1 block">🌍 Discover Kerala</span>
-            <h1 className="text-xl sm:text-4xl lg:text-5xl font-black text-gray-900 dark:text-white leading-tight">
+            <h1 className="text-xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white leading-tight">
               Every Event in Kerala
             </h1>
             <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-base mt-1.5 max-w-lg mx-auto hidden sm:block">
@@ -527,8 +527,8 @@ export default function HomePage() {
                 </svg>
               </div>
               <div>
-                <h2 className="text-base sm:text-xl font-black text-gray-900 dark:text-white tracking-tight leading-none">This Week</h2>
-                <p className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 mt-0.5 font-medium">Upcoming events near you</p>
+                <h2 className="text-base sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight leading-none">This Week</h2>
+                <p className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 mt-0.5 font-medium">Upcoming festivals & temple events</p>
               </div>
             </div>
 
@@ -544,8 +544,8 @@ export default function HomePage() {
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent opacity-60" />
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-accent" />
                   </span>
-                  <span className="text-sm font-black text-accent tabular-nums">{filteredWeekEvents.length}</span>
-                  <span className="text-xs font-semibold text-accent/80">events live</span>
+                  <span className="text-sm font-bold text-accent tabular-nums">{filteredWeekEvents.length}</span>
+                  <span className="text-xs font-medium text-accent/80">live</span>
                 </div>
                 {/* Scroll arrows */}
                 <div className="flex items-center gap-1">
@@ -709,7 +709,7 @@ export default function HomePage() {
                 </svg>
               </div>
               <div>
-                <h2 className="text-base sm:text-xl font-black text-gray-900 dark:text-white tracking-tight leading-none">
+                <h2 className="text-base sm:text-xl font-bold text-gray-900 dark:text-white tracking-tight leading-none">
                   {search ? `Results for "${search}"` : 'All Events'}
                 </h2>
                 <p className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 mt-0.5 font-medium">
@@ -721,8 +721,8 @@ export default function HomePage() {
             <div className="flex items-center gap-2">
               {!loading && (
                 <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                  <span className="text-sm font-black text-gray-900 dark:text-white tabular-nums">{total}</span>
-                  <span className="text-xs font-semibold text-gray-500 dark:text-gray-400">found</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white tabular-nums">{total}</span>
+                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400">found</span>
                 </div>
               )}
               {isAdmin() && (

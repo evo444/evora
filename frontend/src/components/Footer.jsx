@@ -13,11 +13,9 @@ export default function Footer() {
 
             {/* Brand */}
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 bg-gray-900 dark:bg-white rounded-xl flex items-center justify-center shadow-sm">
-                <span className="text-white dark:text-gray-900 font-black text-sm">E</span>
-              </div>
+              <img src="/zzon-icon.png" alt="Zzon" className="w-8 h-8 rounded-xl object-cover" />
               <div className="flex flex-col leading-tight">
-                <span className="font-black text-gray-900 dark:text-white text-sm">Evora</span>
+                <span className="font-black text-gray-900 dark:text-white text-sm">Zzon</span>
                 <span className="text-[10px] text-gray-400 dark:text-gray-500 font-medium tracking-wide">Discover Kerala Events</span>
               </div>
             </div>
@@ -40,7 +38,7 @@ export default function Footer() {
 
             {/* Copyright */}
             <p className="text-xs text-gray-400 dark:text-gray-500 text-center sm:text-right">
-              © {new Date().getFullYear()} Evora · Community-driven
+              © {new Date().getFullYear()} Zzon · Community-driven
             </p>
           </div>
         </div>

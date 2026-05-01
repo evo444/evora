@@ -77,7 +77,7 @@ export default function FeedbackWidget() {
                   {/* Header */}
                   <div className="px-4 pt-4 pb-3 border-b border-gray-100 dark:border-gray-800">
                     <h3 className="font-black text-gray-900 dark:text-white text-sm">Report / Suggest</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">Help us improve Evora 🌴</p>
+                    <p className="text-xs text-gray-400 mt-0.5">Help us improve Zzon 🌴</p>
                   </div>
 
                   <form onSubmit={handleSubmit} className="p-4 space-y-3">

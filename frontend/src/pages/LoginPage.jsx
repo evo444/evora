@@ -24,24 +24,20 @@ export default function LoginPage() {
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
-      const u = await loginWithGoogle();
-      toast.success(`Welcome, ${u.name}! 👋`);
-      navigate(u.role === 'admin' ? '/admin' : '/');
+      // loginWithGoogle now uses signInWithRedirect — it navigates away to Google.
+      // The result is handled in AuthContext when the page reloads.
+      await loginWithGoogle();
+      // If we reach here the redirect hasn't happened yet (shouldn't normally occur)
     } catch (err) {
-      // Firebase errors have a 'code' property; Axios errors have 'response'
       const code = err?.code || '';
-      if (code === 'auth/popup-blocked') {
-        toast.error('Popup was blocked. Please allow popups for this site and try again.');
-      } else if (code === 'auth/unauthorized-domain') {
+      if (code === 'auth/unauthorized-domain') {
         toast.error('This domain is not authorized for Google Sign-In. Contact the admin.');
-      } else if (code === 'auth/cancelled-popup-request' || code === 'auth/popup-closed-by-user') {
-        toast.error('Sign-in cancelled. Please try again.');
       } else {
         toast.error(err?.response?.data?.message || err?.message || 'Google sign-in failed. Please try again.');
       }
-    } finally {
       setLoading(false);
     }
+    // Keep loading=true while redirecting so the button stays disabled
   };
 
   return (
@@ -56,14 +52,7 @@ export default function LoginPage() {
         <div className="card p-10 text-center">
 
           {/* Logo / Brand */}
-          <motion.div
-            initial={{ scale: 0.8, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ delay: 0.1, duration: 0.4 }}
-            className="w-16 h-16 bg-primary-600 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-glow"
-          >
-            <span className="text-white font-black text-3xl">E</span>
-          </motion.div>
+            <img src="/zzon-icon.png" alt="Zzon" className="w-16 h-16 rounded-2xl object-cover mx-auto mb-6 shadow-glow" />
 
           {/* Heading */}
           <motion.h1
@@ -72,7 +61,7 @@ export default function LoginPage() {
             transition={{ delay: 0.2 }}
             className="text-2xl font-black text-gray-900 dark:text-white mb-2"
           >
-            Welcome to Evora
+            Welcome to Zzon
           </motion.h1>
 
           <motion.p
@@ -103,7 +92,7 @@ export default function LoginPage() {
             ) : (
               <GoogleLogo />
             )}
-            <span>{loading ? 'Signing in...' : 'Continue with Google'}</span>
+            <span>{loading ? 'Redirecting to Google...' : 'Continue with Google'}</span>
           </motion.button>
 
           {/* Divider */}
@@ -115,7 +104,7 @@ export default function LoginPage() {
 
           {/* Footer note */}
           <p className="text-xs text-gray-400 dark:text-gray-500 leading-relaxed">
-            By continuing, you agree to Evora's terms. Your Google account name and photo will be used on your profile.
+            By continuing, you agree to Zzon's terms. Your Google account name and photo will be used on your profile.
           </p>
         </div>
 
