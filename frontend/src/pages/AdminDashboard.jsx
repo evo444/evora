@@ -223,7 +223,7 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, onDeleteDup
                 <>
                   <img src={imgUrl(images[imgIndex])} alt=""
                     className="w-full object-cover cursor-zoom-in"
-                    style={{ height: 'clamp(140px, 22vw, 220px)' }}
+                    style={{ height: 'clamp(160px, 28vw, 260px)' }}
                     onClick={() => setLightbox(imgUrl(images[imgIndex]))} />
                   {/* Thumbnail strip */}
                   {images.length > 1 && (
@@ -259,23 +259,19 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, onDeleteDup
 
             {/* ─── Scrollable Content ─── */}
             <div className="overflow-y-auto flex-1 overscroll-contain">
-            <div className="p-4 sm:p-5 space-y-4">
+            <div className="p-4 sm:p-6 space-y-4">
 
               {/* Title + category + meta */}
               <div>
                 <div className="flex items-start justify-between gap-3 mb-2">
-                  <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight">{sub.name}</h2>
+                  <h2 className="text-xl font-bold text-gray-900 dark:text-white leading-tight">{sub.name}</h2>
                   <span className="badge bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex-shrink-0 text-xs px-2 py-0.5">{sub.category}</span>
                 </div>
-                <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
+                <div className="flex flex-col gap-1 text-sm text-gray-500 dark:text-gray-400">
                   <span>📅 {fmtDate(sub.date)} {fmtTime(sub.date) && `· ${fmtTime(sub.date)}`}</span>
-                  {sub.endDate && <span>→ {fmtDate(sub.endDate)} {fmtTime(sub.endDate) && `· ${fmtTime(sub.endDate)}`}</span>}
-                  <CrowdBadge crowd={sub.crowd} size="sm" />
+                  {sub.endDate && <span>→ {fmtDate(sub.endDate)} {fmtTime(sub.endDate) && `· ${fmtTime(sub.endDate)}`}  <CrowdBadge crowd={sub.crowd} size="sm" /></span>}
                   {sub.attendees > 0 && <span>👥 {Number(sub.attendees).toLocaleString()} expected</span>}
-                </div>
-                <div className="flex gap-3 mt-2 text-xs text-gray-400 dark:text-gray-500">
-                  <span>⏱ Submitted {timeAgo(sub.createdAt)}</span>
-                  {sub.updatedAt !== sub.createdAt && <span>· Edited {timeAgo(sub.updatedAt)}</span>}
+                  <span className="text-xs text-gray-400">⏱ Submitted {timeAgo(sub.createdAt)}</span>
                 </div>
               </div>
 
@@ -342,7 +338,7 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, onDeleteDup
                       {/* Map area */}
                       {hasCoords && markerPos ? (
                         <MapContainer key={`${lat}-${lng}`} center={[lat, lng]} zoom={15}
-                          style={{ height: 180, width: '100%' }} scrollWheelZoom={false} zoomControl>
+                          style={{ height: 200, width: '100%' }} scrollWheelZoom={false} zoomControl>
                           <TileLayer attribution='&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                           <DraggableMarker pos={markerPos} setPos={setMarkerPos} />
@@ -350,7 +346,7 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, onDeleteDup
                       ) : hasAddress ? (
                         <iframe
                           title="Event Location"
-                          width="100%" height="180"
+                          width="100%" height="200"
                           style={{ border: 0, display: 'block' }}
                           loading="lazy"
                           allowFullScreen
@@ -363,50 +359,23 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, onDeleteDup
                       )}
 
                       {/* Details panel */}
-                      <div className="p-4 bg-gray-50 dark:bg-gray-800 space-y-2">
-                        {/* Accuracy label */}
-                        <p className="text-xs text-green-600 dark:text-green-400 font-semibold flex items-center gap-1">
-                          🎯 Location is based on exact coordinates selected by the user
-                        </p>
-
+                      <div className="p-3 bg-gray-50 dark:bg-gray-800 space-y-2">
                         {loc.placeName && <p className="font-semibold text-gray-900 dark:text-white text-sm">🏛 {loc.placeName}</p>}
-                        {addr && <p className="text-sm text-gray-700 dark:text-gray-300">📍 {addr}</p>}
-
+                        {addr && <p className="text-sm text-gray-600 dark:text-gray-300">📍 {addr}</p>}
                         <div className="flex items-center justify-between flex-wrap gap-2 text-xs">
-                          <span className="text-gray-500 dark:text-gray-400">📌 {district ? `${district} District` : <em>No district</em>}</span>
-                          {hasCoords && <span className="font-mono text-gray-900 dark:text-white font-bold">{lat.toFixed(6)}, {lng.toFixed(6)}</span>}
+                          <span className="text-gray-500">{district ? `${district} District` : ''}</span>
+                          {hasCoords && <span className="font-mono text-gray-600 dark:text-gray-300">{lat.toFixed(5)}, {lng.toFixed(5)}</span>}
                         </div>
-
-                        {/* Reset button when marker adjusted */}
-                        {markerPos && hasCoords && (markerPos.lat.toFixed(6) !== lat.toFixed(6) || markerPos.lng.toFixed(6) !== lng.toFixed(6)) && (
-                          <div className="flex items-center justify-between bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2 gap-2">
-                            <span className="text-xs text-amber-600 dark:text-amber-400">
-                              ✏️ Adjusted to: {markerPos.lat.toFixed(6)}, {markerPos.lng.toFixed(6)}
-                            </span>
-                            <button onClick={() => setMarkerPos({ lat, lng })}
-                              className="text-xs font-bold text-amber-700 dark:text-amber-300 underline underline-offset-2 hover:no-underline flex-shrink-0">
-                              ↺ Reset to user's location
-                            </button>
-                          </div>
-                        )}
-
-                        {/* Direction buttons */}
                         {(hasCoords || hasAddress) && (
-                          <div className="flex gap-2 flex-wrap pt-1">
+                          <div className="flex gap-2 pt-1">
                             <a href={gmapsDirections} target="_blank" rel="noreferrer"
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-accent text-white hover:bg-accent/90 transition-all">
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-accent text-white">
                               🧭 Get Directions
                             </a>
                             <a href={gmapsOpen} target="_blank" rel="noreferrer"
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition-all">
-                              🗺 Open in Google Maps
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200">
+                              🗺 Maps
                             </a>
-                          </div>
-                        )}
-
-                        {!hasCoords && !hasAddress && (
-                          <div className="text-xs text-red-600 font-semibold bg-red-50 dark:bg-red-900/20 rounded-lg px-3 py-2">
-                            ❌ No location data — reject or ask user to resubmit.
                           </div>
                         )}
                       </div>
@@ -471,8 +440,8 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, onDeleteDup
 
               {/* ── Safety note ── */}
               <div className="flex gap-2 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/40 text-xs text-amber-700 dark:text-amber-400">
-                <span className="flex-shrink-0 text-base">🛡️</span>
-                <span><strong>Admin reminder:</strong> Ensure location and details are accurate before approval to avoid user issues. Check the map marker, description, and date before approving.</span>
+                <span className="flex-shrink-0">🛡️</span>
+                <span><strong>Admin reminder:</strong> Verify map location, description, and date before approving.</span>
               </div>
 
             </div>
@@ -805,6 +774,30 @@ export default function AdminDashboard() {
     catch { toast.error('Failed'); }
   };
 
+  // ── Manual AI event fetch trigger ──
+  const [aiFetching, setAiFetching] = React.useState(false);
+  const triggerAiFetch = async () => {
+    if (aiFetching) return;
+    setAiFetching(true);
+    try {
+      const token = localStorage.getItem('evora_token');
+      const res = await axios.post(`${API_URL}/api/admin/trigger-ai-fetch`, {}, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const { eventsQueued, message } = res.data;
+      if (eventsQueued > 0) {
+        toast.success(`🤖 ${message} Check Submissions tab.`);
+        fetchData();
+      } else {
+        toast(`ℹ️ ${message}`, { icon: '📅' });
+      }
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'AI fetch failed');
+    } finally {
+      setAiFetching(false);
+    }
+  };
+
   const approveSubmission = async (id) => {
     try { await eventService.approveSubmission(id); toast.success('Event approved! 🎉'); setPreviewSub(null); fetchData(); }
     catch { toast.error('Failed to approve'); }
@@ -843,7 +836,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+    <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
 
       {/* ── Submission Preview Modal ── */}
       {previewSub && ReactDOM.createPortal(
@@ -860,17 +853,35 @@ export default function AdminDashboard() {
         document.body
       )}
 
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-4 gap-2">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">👑 Admin Dashboard</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">Manage Zzon</p>
+          <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">👑 Admin</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-xs">Manage Zzon</p>
         </div>
-        {/* Only show "New Event" on localhost, hidden on netlify zzon website */}
-        {!window.location.hostname.includes('netlify.app') && (
-          <Link to="/admin/events/new" className="btn-primary py-2 px-3 sm:px-4 text-xs sm:text-sm flex items-center gap-1.5 rounded-xl">
-            <span>+</span> New <span className="hidden xs:inline">Event</span>
-          </Link>
-        )}
+        <div className="flex items-center gap-2">
+          {/* AI Fetch trigger */}
+          <button onClick={triggerAiFetch} disabled={aiFetching}
+            title="Manually fetch this week's Kerala temple events"
+            className={`py-2 px-3 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-all ${
+              aiFetching
+                ? 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-400 cursor-not-allowed'
+                : 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40'
+            }`}>
+            {aiFetching ? (
+              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+              </svg>
+            ) : '🤖'}
+            <span className="hidden sm:inline">{aiFetching ? 'Fetching...' : 'Run AI Fetch'}</span>
+          </button>
+          {/* New event (hidden on netlify) */}
+          {!window.location.hostname.includes('netlify.app') && (
+            <Link to="/admin/events/new" className="btn-primary py-2 px-3 sm:px-4 text-xs sm:text-sm flex items-center gap-1.5 rounded-xl">
+              <span>+</span> New
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Tabs as GlassSelect */}
@@ -1036,104 +1047,87 @@ export default function AdminDashboard() {
           {/* Duplicates Tab */}
           {activeTab === 'Duplicates' && <DuplicatesTab />}
 
-          {/* Events Tab */}
+          {/* Events Tab — Mobile Card Layout */}
           {activeTab === 'Events' && (
-            <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} className="card overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-                    <tr>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Event</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase hidden sm:table-cell">Category</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">Date</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Rating</th>
-                      <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-                    {events.map(e => (
-                      <tr key={e._id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                        <td className="px-4 py-3">
-                          <div className="font-medium text-gray-900 dark:text-white line-clamp-1">{e.name}</div>
-                          <div className="text-xs text-gray-400">{e.location?.district}</div>
-                        </td>
-                        <td className="px-4 py-3 hidden sm:table-cell"><span className="badge bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{e.category}</span></td>
-                        <td className="px-4 py-3 text-gray-500 dark:text-gray-400 text-xs hidden md:table-cell">
-                          {new Date(e.date).toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' })}
-                        </td>
-                        <td className="px-4 py-3"><StarDisplay rating={e.averageRating} total={e.totalRatings} /></td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-1 justify-end">
-                            <button onClick={() => toggleTrending(e._id)} title={e.trending ? 'Remove trending' : 'Set trending'}
-                              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-sm transition-colors">
-                              {e.trending ? '⭐' : '☆'}
-                            </button>
-                            <Link to={`/admin/events/${e._id}/edit`} className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-sm transition-colors">✏️</Link>
-                            <button onClick={() => deleteEvent(e._id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-sm transition-colors">🗑️</button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} className="space-y-2">
+              {events.map(e => (
+                <div key={e._id} className="card p-3 flex items-center gap-3">
+                  {/* Thumbnail or icon */}
+                  {e.images?.[0] ? (
+                    <img src={imgUrl(e.images[0])} alt="" className="w-12 h-12 rounded-xl object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-xl flex-shrink-0">🎪</div>
+                  )}
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 dark:text-white text-sm leading-tight line-clamp-1">{e.name}</p>
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                      <span className="text-xs text-gray-400">{e.location?.district}</span>
+                      <span className="badge text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 py-0">{e.category}</span>
+                      <StarDisplay rating={e.averageRating} total={e.totalRatings} />
+                    </div>
+                  </div>
+                  {/* Actions */}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <button onClick={() => toggleTrending(e._id)} title={e.trending ? 'Remove trending' : 'Set trending'}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-base transition-colors">
+                      {e.trending ? '⭐' : '☆'}
+                    </button>
+                    <Link to={`/admin/events/${e._id}/edit`} className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-base transition-colors">✏️</Link>
+                    <button onClick={() => deleteEvent(e._id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-base transition-colors">🗑️</button>
+                  </div>
+                </div>
+              ))}
+              {events.length === 0 && (
+                <div className="card p-12 text-center">
+                  <div className="text-4xl mb-2">🎪</div>
+                  <p className="text-gray-400 text-sm">No events found</p>
+                </div>
+              )}
             </motion.div>
           )}
 
-          {/* Users Tab */}
+          {/* Users Tab — Mobile Card Layout */}
           {activeTab === 'Users' && (
-            <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} className="card overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-100 dark:border-gray-700">
-                    <tr>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">User</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase hidden sm:table-cell">Role</th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Status</th>
-                      <th className="text-right px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-50 dark:divide-gray-800">
-                    {users.map(u => (
-                      <tr key={u._id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-primary-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                              {u.name[0].toUpperCase()}
-                            </div>
-                            <div>
-                              <div className="font-medium text-gray-900 dark:text-white">{u.name}</div>
-                              <div className="text-xs text-gray-400">{u.email}</div>
-                            </div>
-                          </div>
-                        </td>
-                        <td className="px-4 py-3 hidden sm:table-cell">
-                          <span className={`badge ${u.role === 'admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
-                            {u.role === 'admin' ? '👑 Admin' : '👤 User'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`badge ${u.approved ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
-                            {u.approved ? '✅ Approved' : '⏳ Pending'}
-                          </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex gap-1 justify-end">
-                            {!u.approved ? (
-                              <button onClick={() => approveUser(u._id)} className="text-xs bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 px-2.5 py-1 rounded-lg hover:bg-green-100 dark:hover:bg-green-900/40 transition-colors font-medium">Approve</button>
-                            ) : (
-                              <button onClick={() => rejectUser(u._id)} className="text-xs bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 dark:text-yellow-400 px-2.5 py-1 rounded-lg hover:bg-yellow-100 transition-colors font-medium">Revoke</button>
-                            )}
-                            {u.role !== 'admin' && (
-                              <button onClick={() => deleteUser(u._id)} className="text-xs bg-red-50 dark:bg-red-900/20 text-red-500 px-2.5 py-1 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/40 transition-colors font-medium">Delete</button>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+            <motion.div initial={{opacity:0,y:10}} animate={{opacity:1,y:0}} className="space-y-2">
+              {users.map(u => (
+                <div key={u._id} className="card p-3 flex items-center gap-3">
+                  {/* Avatar */}
+                  <div className="w-10 h-10 rounded-full bg-primary-600 flex items-center justify-center text-white text-sm font-bold flex-shrink-0">
+                    {u.name?.[0]?.toUpperCase()}
+                  </div>
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-gray-900 dark:text-white text-sm leading-tight truncate">{u.name}</p>
+                    <p className="text-xs text-gray-400 truncate">{u.email}</p>
+                    <div className="flex gap-1.5 mt-1 flex-wrap">
+                      <span className={`badge text-[10px] py-0 ${ u.role === 'admin' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'}`}>
+                        {u.role === 'admin' ? '👑 Admin' : '👤 User'}
+                      </span>
+                      <span className={`badge text-[10px] py-0 ${ u.approved ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400'}`}>
+                        {u.approved ? '✅' : '⏳'}
+                      </span>
+                    </div>
+                  </div>
+                  {/* Actions */}
+                  <div className="flex flex-col gap-1 flex-shrink-0">
+                    {!u.approved ? (
+                      <button onClick={() => approveUser(u._id)} className="text-xs bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 px-2 py-1 rounded-lg font-medium">✓ Approve</button>
+                    ) : (
+                      <button onClick={() => rejectUser(u._id)} className="text-xs bg-yellow-50 dark:bg-yellow-900/20 text-yellow-600 px-2 py-1 rounded-lg font-medium">Revoke</button>
+                    )}
+                    {u.role !== 'admin' && (
+                      <button onClick={() => deleteUser(u._id)} className="text-xs bg-red-50 dark:bg-red-900/20 text-red-500 px-2 py-1 rounded-lg font-medium">Delete</button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {users.length === 0 && (
+                <div className="card p-12 text-center">
+                  <div className="text-4xl mb-2">👥</div>
+                  <p className="text-gray-400 text-sm">No users found</p>
+                </div>
+              )}
             </motion.div>
           )}
           {/* Feedback Tab */}

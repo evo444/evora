@@ -138,6 +138,34 @@ app.get('/api/health', (req, res) =>
   res.json({ status: 'ok', env: process.env.NODE_ENV, uptime: process.uptime(), time: new Date() })
 );
 
+// ── Admin: manually trigger AI event fetch ───────────────────────────
+// Only callable with a valid admin JWT token
+app.post('/api/admin/trigger-ai-fetch', async (req, res) => {
+  try {
+    // Verify admin token
+    const authHeader = req.headers.authorization || '';
+    const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : null;
+    if (!token) return res.status(401).json({ message: 'No token provided' });
+
+    const jwt = require('jsonwebtoken');
+    const User = require('./models/User');
+    let decoded;
+    try { decoded = jwt.verify(token, process.env.JWT_SECRET); }
+    catch { return res.status(401).json({ message: 'Invalid token' }); }
+
+    const user = await User.findById(decoded.id).select('role');
+    if (!user || user.role !== 'admin') return res.status(403).json({ message: 'Admin only' });
+
+    // Run the fetch
+    const { runScheduledFetch } = require('./utils/scheduler');
+    const count = await runScheduledFetch('manual-admin-trigger');
+    res.json({ success: true, eventsQueued: count, message: count > 0 ? `${count} event(s) queued for admin approval.` : 'No new events starting this week.' });
+  } catch (err) {
+    console.error('[AI Trigger] Error:', err.message);
+    res.status(500).json({ message: 'Trigger failed', error: err.message });
+  }
+});
+
 // Google Maps short-URL resolver
 app.get('/api/resolve-url', async (req, res) => {
   const { url } = req.query;
