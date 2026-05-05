@@ -209,20 +209,21 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, onDeleteDup
       <AnimatePresence>
         <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
           onClick={onClose}
-          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-start justify-center p-2 sm:p-4 pt-4 sm:pt-6 overflow-y-auto modal-scroll">
+          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-end sm:items-start justify-center sm:p-4 sm:pt-6 overflow-hidden">
 
-          <motion.div initial={{ opacity: 0, y: 30, scale: 0.97 }} animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20 }} transition={{ type:'spring', stiffness:300, damping:28 }}
+          <motion.div initial={{ opacity: 0, y: 40, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: 30 }} transition={{ type:'spring', stiffness:320, damping:30 }}
             onClick={e => e.stopPropagation()}
-            className="w-full max-w-3xl bg-white dark:bg-gray-900 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden mb-4 sm:mb-10 mx-auto">
+            className="w-full max-w-3xl bg-white dark:bg-gray-900 rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col mx-auto"
+            style={{ maxHeight: '92dvh' }}>
 
             {/* ─── Image Gallery Header ─── */}
-            <div className="relative bg-gray-900" style={{ minHeight: 180 }}>
+            <div className="relative bg-gray-900 flex-shrink-0" style={{ minHeight: 140 }}>
               {images.length > 0 ? (
                 <>
                   <img src={imgUrl(images[imgIndex])} alt=""
                     className="w-full object-cover cursor-zoom-in"
-                    style={{ height: 'clamp(180px, 30vw, 280px)' }}
+                    style={{ height: 'clamp(140px, 22vw, 220px)' }}
                     onClick={() => setLightbox(imgUrl(images[imgIndex]))} />
                   {/* Thumbnail strip */}
                   {images.length > 1 && (
@@ -256,13 +257,14 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, onDeleteDup
               <button onClick={onClose} className="absolute top-3 right-3 w-9 h-9 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 text-lg">✕</button>
             </div>
 
-            {/* ─── Content ─── */}
-            <div className="p-6 space-y-5">
+            {/* ─── Scrollable Content ─── */}
+            <div className="overflow-y-auto flex-1 overscroll-contain">
+            <div className="p-4 sm:p-5 space-y-4">
 
               {/* Title + category + meta */}
               <div>
                 <div className="flex items-start justify-between gap-3 mb-2">
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight">{sub.name}</h2>
+                  <h2 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white leading-tight">{sub.name}</h2>
                   <span className="badge bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 flex-shrink-0 text-xs px-2 py-0.5">{sub.category}</span>
                 </div>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-gray-500 dark:text-gray-400">
@@ -340,7 +342,7 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, onDeleteDup
                       {/* Map area */}
                       {hasCoords && markerPos ? (
                         <MapContainer key={`${lat}-${lng}`} center={[lat, lng]} zoom={15}
-                          style={{ height: 260, width: '100%' }} scrollWheelZoom zoomControl>
+                          style={{ height: 180, width: '100%' }} scrollWheelZoom={false} zoomControl>
                           <TileLayer attribution='&copy; <a href="https://openstreetmap.org">OpenStreetMap</a>'
                             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
                           <DraggableMarker pos={markerPos} setPos={setMarkerPos} />
@@ -348,7 +350,7 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, onDeleteDup
                       ) : hasAddress ? (
                         <iframe
                           title="Event Location"
-                          width="100%" height="260"
+                          width="100%" height="180"
                           style={{ border: 0, display: 'block' }}
                           loading="lazy"
                           allowFullScreen
@@ -473,23 +475,25 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, onDeleteDup
                 <span><strong>Admin reminder:</strong> Ensure location and details are accurate before approval to avoid user issues. Check the map marker, description, and date before approving.</span>
               </div>
 
-              {/* ── Actions ── */}
-              {sub.status === 'pending' && (
-                <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
-                  <div className="flex gap-3">
-                    <button onClick={() => onApprove(sub._id)}
-                      className="flex-1 btn-primary py-3 text-sm font-bold flex items-center justify-center gap-2">
-                      ✅ Approve Event
-                    </button>
-                    <button onClick={() => onReject(sub._id)}
-                      className="flex-1 py-3 rounded-xl text-sm font-bold bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all">
-                      🗑️ Reject & Delete
-                    </button>
-                  </div>
-                  <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-2">Rejection permanently deletes this submission.</p>
-                </div>
-              )}
             </div>
+            </div>
+
+            {/* ── Sticky Action Bar ── */}
+            {sub.status === 'pending' && (
+              <div className="flex-shrink-0 px-4 py-3 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+                <div className="flex gap-3">
+                  <button onClick={() => onApprove(sub._id)}
+                    className="flex-1 btn-primary py-3 text-sm font-bold flex items-center justify-center gap-2">
+                    ✅ Approve
+                  </button>
+                  <button onClick={() => onReject(sub._id)}
+                    className="flex-1 py-3 rounded-xl text-sm font-bold bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all">
+                    🗑️ Reject
+                  </button>
+                </div>
+                <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-1.5">Rejection permanently deletes this submission.</p>
+              </div>
+            )}
           </motion.div>
         </motion.div>
       </AnimatePresence>
