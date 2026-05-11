@@ -8,6 +8,38 @@ import MapPicker from '../components/MapPicker';
 import DisclaimerModal from '../components/DisclaimerModal';
 import { useAuth } from '../contexts/AuthContext';
 
+// ── Compress a cross-origin image URL → File (canvas 800px JPEG 80%) ────────
+async function compressImageUrlToFile(url, fileName = 'ai-image.jpg') {
+  // Try multiple CORS proxies in order
+  const proxies = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    url, // direct last-resort (works if server allows it)
+  ];
+  let blob = null;
+  for (const src of proxies) {
+    try {
+      const res = await fetch(src);
+      if (res.ok) { blob = await res.blob(); break; }
+    } catch (_) {}
+  }
+  if (!blob) throw new Error('All proxies failed');
+
+  const bmp = await createImageBitmap(blob);
+  const MAX = 800;
+  let w = bmp.width, h = bmp.height;
+  if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      b => b ? resolve(new File([b], fileName, { type: 'image/jpeg' })) : reject(new Error('canvas empty')),
+      'image/jpeg', 0.8
+    );
+  });
+}
+
 // ── AI helpers ────────────────────────────────────────────────────────────────
 const DISTRICTS_LIST = ['Thiruvananthapuram','Kollam','Pathanamthitta','Alappuzha','Kottayam','Idukki','Ernakulam','Thrissur','Palakkad','Malappuram','Kozhikode','Wayanad','Kannur','Kasaragod'];
 
@@ -243,12 +275,29 @@ export default function SubmitEventPage() {
       if (data.location) setLocation(data.location);
       const imgs = data.allImages?.length > 0 ? data.allImages : (data.imageUrl ? [data.imageUrl] : []);
       if (imgs.length > 0) setWikiImages(imgs);
+
+      // ── Auto-compress & upload first image ────────────────────────────
+      let imageAutoUploaded = false;
+      if (imgs.length > 0) {
+        toast.loading('📸 Compressing & uploading image…', { id: tid });
+        try {
+          const file = await compressImageUrlToFile(
+            imgs[0],
+            `${form.name.slice(0, 30).replace(/\s+/g, '-')}.jpg`
+          );
+          setImages([file]);
+          imageAutoUploaded = true;
+        } catch (_) {
+          // compression failed — wiki URL fallback still visible in wikiImages
+        }
+      }
+
       const filled = [
         data.description && 'Description',
         data.category && 'Category',
         data.location && 'Location',
         data.district && 'District',
-        imgs.length > 0 && `${imgs.length} Image${imgs.length > 1 ? 's' : ''}`,
+        imageAutoUploaded ? '📸 Image (compressed)' : (imgs.length > 0 && `${imgs.length} image URL${imgs.length > 1 ? 's' : ''}`),
       ].filter(Boolean);
       toast.success(`✅ Auto-filled: ${filled.join(', ')}`, { id: tid, duration: 4000 });
     } catch { toast.error('Auto-fill failed. Try a more specific name.', { id: tid }); }
@@ -547,7 +596,8 @@ export default function SubmitEventPage() {
 
             <div className="flex gap-3 justify-between pt-2 border-t border-gray-100 dark:border-gray-800">
               <button type="button" onClick={() => setStep(1)} className="btn-secondary px-5 py-2.5 text-sm">← Back</button>
-              <button type="button" onClick={() => setStep(3)} className="btn-primary px-6 py-2.5 text-sm">Review & Submit →</button>
+              <button type="button" disabled={!canProceed2} onClick={() => setStep(3)}
+                className="btn-primary px-6 py-2.5 text-sm disabled:opacity-50">Review & Submit →</button>
             </div>
           </motion.div>
         )}

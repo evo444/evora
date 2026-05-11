@@ -73,12 +73,22 @@ function pickWikiImage(name) {
 
 // ── Compress an image URL → File (canvas, max 800px, JPEG 80%) ─────────────
 async function compressImageUrlToFile(url, fileName = 'ai-image.jpg') {
-  // Use allorigins CORS proxy to fetch the image cross-origin
-  const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
-  const res = await fetch(proxyUrl);
-  const blob = await res.blob();
-  const bmp  = await createImageBitmap(blob);
+  // Try multiple CORS proxies in order
+  const proxies = [
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    url, // direct last-resort
+  ];
+  let blob = null;
+  for (const src of proxies) {
+    try {
+      const res = await fetch(src);
+      if (res.ok) { blob = await res.blob(); break; }
+    } catch (_) {}
+  }
+  if (!blob) throw new Error('All proxies failed');
 
+  const bmp  = await createImageBitmap(blob);
   const MAX = 800;
   let w = bmp.width, h = bmp.height;
   if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
