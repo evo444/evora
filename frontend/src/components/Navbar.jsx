@@ -70,8 +70,7 @@ export default function Navbar() {
   const menuItems = [
     {
       id: 'darkmode',
-      icon: darkMode ? '☀️' : '🌙',
-      label: darkMode ? 'Light Mode' : 'Dark Mode',
+      label: 'DARKMOD',
       action: () => { toggle(); },
       extra: (
         <span className={`ml-auto w-9 h-5 rounded-full flex items-center px-0.5 transition-colors ${darkMode ? 'bg-gray-900 dark:bg-white justify-end' : 'bg-gray-200 justify-start'}`}>
@@ -81,14 +80,12 @@ export default function Navbar() {
     },
     {
       id: 'suggestion',
-      icon: '💡',
-      label: 'Send Suggestion',
+      label: 'SUGGESTIONS',
       action: () => { setMenuOpen(false); setFeedbackType('suggestion'); },
     },
     {
       id: 'bug',
-      icon: '🐛',
-      label: 'Report a Bug',
+      label: 'REPORT',
       action: () => { setMenuOpen(false); setFeedbackType('bug'); },
     },
   ];
@@ -242,9 +239,8 @@ export default function Navbar() {
                           initial="hidden"
                           animate="show"
                           onClick={item.action}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors group"
+                          className="w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                         >
-                          <span className="text-base w-5 text-center transition-transform duration-200 group-hover:scale-110">{item.icon}</span>
                           <span className="flex-1 text-left">{item.label}</span>
                           {item.extra}
                         </motion.button>
@@ -256,7 +252,6 @@ export default function Navbar() {
                       <div className="sm:hidden border-t border-gray-100 dark:border-gray-800 py-1">
                         <Link to="/login" onClick={() => setMenuOpen(false)}
                           className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-gray-900 dark:text-white hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-                          <span className="text-base w-5 text-center">🔑</span>
                           <span>Login</span>
                         </Link>
                       </div>
