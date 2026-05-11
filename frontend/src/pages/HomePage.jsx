@@ -106,18 +106,22 @@ function GlassSelect({ icon, value, onChange, options, placeholder, className = 
         className="w-full flex items-center gap-1.5 rounded-full text-xs font-semibold transition-all duration-200 select-none"
         style={{
           padding: '6px 10px 6px 10px',
-          background: open ? 'rgba(255,255,255,0.28)' : 'rgba(255,255,255,0.18)',
+          background: darkMode
+            ? (open ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.10)')
+            : (open ? 'rgba(0,0,0,0.08)' : 'rgba(0,0,0,0.05)'),
           backdropFilter: 'blur(14px)',
           WebkitBackdropFilter: 'blur(14px)',
-          border: `1px solid ${open ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.3)'}`,
+          border: darkMode
+            ? `1px solid ${open ? 'rgba(255,255,255,0.4)' : 'rgba(255,255,255,0.2)'}`
+            : `1px solid ${open ? 'rgba(0,0,0,0.15)' : 'rgba(0,0,0,0.08)'}`,
           boxShadow: open
-            ? '0 4px 24px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.6)'
-            : '0 2px 12px rgba(0,0,0,0.07)',
-          color: 'inherit',
+            ? '0 4px 24px rgba(0,0,0,0.10)'
+            : '0 2px 8px rgba(0,0,0,0.05)',
+          color: darkMode ? '#e2e8f0' : '#111318',
         }}
       >
         <span>{icon}</span>
-        <span className="truncate flex-1 text-left" style={{ opacity: value ? 1 : 0.7 }}>{selected ? selected.label : placeholder}</span>
+        <span className="truncate flex-1 text-left" style={{ opacity: value ? 1 : 0.65 }}>{selected ? selected.label : placeholder}</span>
         <motion.svg
           animate={{ rotate: open ? 180 : 0 }}
           transition={{ duration: 0.2 }}
@@ -234,6 +238,7 @@ const fadeUpItem = {
 
 export default function HomePage() {
   const { isAdmin, user } = useAuth();
+  const { darkMode } = useTheme();
   const [searchParams] = useSearchParams();
 
   // Show a welcome toast after Google redirect sign-in
@@ -421,11 +426,13 @@ export default function HomePage() {
             <div
               className="relative flex items-center rounded-full p-0.5 sm:p-1 flex-shrink-0"
               style={{
-                background: 'rgba(255,255,255,0.18)',
+                background: darkMode ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.06)',
                 backdropFilter: 'blur(16px)',
                 WebkitBackdropFilter: 'blur(16px)',
-                border: '1px solid rgba(255,255,255,0.35)',
-                boxShadow: '0 4px 24px rgba(0,0,0,0.08), inset 0 1px 0 rgba(255,255,255,0.5)',
+                border: darkMode ? '1px solid rgba(255,255,255,0.2)' : '1px solid rgba(0,0,0,0.10)',
+                boxShadow: darkMode
+                  ? '0 4px 24px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.1)'
+                  : '0 2px 8px rgba(0,0,0,0.07)',
               }}
               data-glass-seg
             >
@@ -442,17 +449,19 @@ export default function HomePage() {
                       transition={{ type: 'spring', stiffness: 400, damping: 38 }}
                       className="absolute inset-0 rounded-full"
                       style={{
-                        background: 'rgba(255,255,255,0.82)',
-                        boxShadow: '0 2px 12px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.9)',
-                        backdropFilter: 'blur(8px)',
+                        background: darkMode ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.95)',
+                        boxShadow: darkMode
+                          ? '0 2px 12px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.2)'
+                          : '0 2px 10px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.9)',
                       }}
                     />
                   )}
                   <span
                     className="relative z-10"
                     style={{
-                      color: category === f.value ? '#111318' : 'inherit',
-                      opacity: category === f.value ? 1 : 0.6,
+                      color: darkMode
+                        ? (category === f.value ? '#ffffff' : 'rgba(255,255,255,0.55)')
+                        : (category === f.value ? '#111318' : '#6b7280'),
                     }}
                   >
                     {f.label}

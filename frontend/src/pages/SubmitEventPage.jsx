@@ -8,6 +8,74 @@ import MapPicker from '../components/MapPicker';
 import DisclaimerModal from '../components/DisclaimerModal';
 import { useAuth } from '../contexts/AuthContext';
 
+// ── AI helpers ────────────────────────────────────────────────────────────────
+const DISTRICTS_LIST = ['Thiruvananthapuram','Kollam','Pathanamthitta','Alappuzha','Kottayam','Idukki','Ernakulam','Thrissur','Palakkad','Malappuram','Kozhikode','Wayanad','Kannur','Kasaragod'];
+
+function guessCategory(text) {
+  const t = text.toLowerCase();
+  if (/festival|pooram|utsav|carnival|onam|vishu|celebration/.test(t)) return 'Festival';
+  if (/music|concert|song|band|choir/.test(t)) return 'Music';
+  if (/tech|hackathon|startup|ai|software|code/.test(t)) return 'Tech';
+  if (/temple|cultural|dance|theyyam|heritage|ritual|folk/.test(t)) return 'Cultural';
+  if (/sport|race|marathon|cricket|football|tournament/.test(t)) return 'Sports';
+  if (/food|feast|cuisine|chef/.test(t)) return 'Food';
+  if (/art|paint|sculpture|gallery/.test(t)) return 'Art';
+  if (/education|seminar|workshop|conference/.test(t)) return 'Education';
+  return 'Other';
+}
+
+function detectDistrict(addr) {
+  const text = JSON.stringify(addr).toLowerCase();
+  return DISTRICTS_LIST.find(d => text.includes(d.toLowerCase())) || '';
+}
+
+async function aiAutoFill(eventName) {
+  const result = { description: '', category: '', location: null, district: '', imageUrl: '', allImages: [] };
+  try {
+    const sRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&list=search&srsearch=${encodeURIComponent(eventName)}&format=json&origin=*&srlimit=3`);
+    const sData = await sRes.json();
+    const pageId = sData?.query?.search?.[0]?.pageid;
+    if (pageId) {
+      const pRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&prop=extracts|pageimages|images&exintro=true&explaintext=true&pithumbsize=1200&imlimit=10&pageids=${pageId}&format=json&origin=*`);
+      const pData = await pRes.json();
+      const page = pData?.query?.pages?.[pageId];
+      const extract = page?.extract || '';
+      if (extract) {
+        const sentences = extract.split(/(?<=[.!?])\s+/);
+        result.description = sentences.slice(0, 6).join(' ').slice(0, 1800);
+      }
+      if (page?.thumbnail?.source) result.imageUrl = page.thumbnail.source;
+      // Fetch extra images from Commons
+      const imgTitles = (page?.images || [])
+        .map(i => i.title)
+        .filter(t => /\.(jpg|jpeg|png|webp)$/i.test(t))
+        .slice(0, 6);
+      if (imgTitles.length > 0) {
+        try {
+          const iRes = await fetch(`https://en.wikipedia.org/w/api.php?action=query&prop=imageinfo&iiprop=url&iiurlwidth=800&titles=${encodeURIComponent(imgTitles.join('|'))}&format=json&origin=*`);
+          const iData = await iRes.json();
+          const extras = Object.values(iData?.query?.pages || {})
+            .map(p => p?.imageinfo?.[0]?.thumburl || p?.imageinfo?.[0]?.url)
+            .filter(u => u && !/\.svg$/i.test(u));
+          result.allImages = [...new Set([result.imageUrl, ...extras].filter(Boolean))].slice(0, 5);
+        } catch (_) {}
+      }
+    }
+  } catch (_) {}
+  if (result.allImages.length === 0 && result.imageUrl) result.allImages = [result.imageUrl];
+  result.category = guessCategory(eventName + ' ' + result.description);
+  try {
+    const gRes = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(eventName + ' Kerala')}&format=json&limit=1&addressdetails=1`, { headers: { 'Accept-Language': 'en' } });
+    const gData = await gRes.json();
+    if (gData?.[0]) {
+      const place = gData[0];
+      result.location = { lat: parseFloat(place.lat), lng: parseFloat(place.lon), address: place.display_name, district: detectDistrict(place.address), placeName: place.name || eventName };
+      result.district = result.location.district;
+    }
+  } catch (_) {}
+  return result;
+}
+
 const CATEGORY_OPTIONS = [
   { value: '', label: 'Select Category', icon: '📋' },
   { value: 'Festival', label: 'Festival', icon: '🎪' },
@@ -63,9 +131,8 @@ function ImageUploadZone({ images, onChange }) {
   const [dragging, setDragging] = useState(false);
 
   const handleFiles = (files) => {
-    const valid = Array.from(files).filter(f => f.type.startsWith('image/'));
-    if (images.length + valid.length > 5) { toast.error('Max 5 images'); return; }
-    onChange([...images, ...valid]);
+    const valid = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, 1);
+    onChange(valid);
   };
 
   const remove = (i) => onChange(images.filter((_, idx) => idx !== i));
@@ -85,28 +152,22 @@ function ImageUploadZone({ images, onChange }) {
       >
         <div className="text-4xl mb-2">{dragging ? '🎯' : '📸'}</div>
         <p className="text-sm font-semibold text-gray-700 dark:text-gray-300">
-          {dragging ? 'Drop images here!' : 'Drag & drop event photos'}
+          {dragging ? 'Drop photo here!' : 'Drag & drop 1 event photo'}
         </p>
-        <p className="text-xs text-gray-400 mt-1">or click to browse · Max 5 images · JPG, PNG, WebP</p>
-        <input ref={inputRef} type="file" multiple accept="image/*" className="hidden" onChange={e => handleFiles(e.target.files)} />
+        <p className="text-xs text-gray-400 mt-1">or click to browse · 1 image only · JPG, PNG, WebP</p>
+        <input ref={inputRef} type="file" accept="image/*" className="hidden" onChange={e => handleFiles(e.target.files)} />
       </div>
 
       {images.length > 0 && (
-        <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+        <div className="grid grid-cols-1 gap-2">
           {images.map((img, i) => (
-            <div key={i} className="relative group aspect-square">
+            <div key={i} className="relative group aspect-video max-h-48">
               <img src={URL.createObjectURL(img)} alt="" className="w-full h-full object-cover rounded-xl border-2 border-gray-100 dark:border-gray-700" />
-              {i === 0 && <span className="absolute top-1 left-1 text-xs bg-accent text-white px-1.5 py-0.5 rounded-md font-bold">Cover</span>}
+              <span className="absolute top-1 left-1 text-xs bg-accent text-white px-1.5 py-0.5 rounded-md font-bold">Cover</span>
               <button type="button" onClick={() => remove(i)}
                 className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs hidden group-hover:flex items-center justify-center shadow">✕</button>
             </div>
           ))}
-          {images.length < 5 && (
-            <button type="button" onClick={() => inputRef.current.click()}
-              className="aspect-square rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex items-center justify-center text-gray-400 hover:border-accent hover:text-accent transition-all">
-              <span className="text-2xl">+</span>
-            </button>
-          )}
         </div>
       )}
     </div>
@@ -119,17 +180,17 @@ export default function SubmitEventPage() {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const [step, setStep] = useState(0);
   const [images, setImages] = useState([]);
+  const [wikiImages, setWikiImages] = useState([]);
   const [location, setLocation] = useState(null);
   const [disclaimerAccepted, setDisclaimerAccepted] = useState(false);
   const [showDisclaimer, setShowDisclaimer] = useState(false);
   const [form, setForm] = useState({
     name: '', description: '', category: '',
-    date: '', endDate: '', crowd: '',
-    attendees: '', tags: '', district: '',
-    organizerName: '',
-    organizerPhone: '', organizerEmail: '', website: '',
+    crowd: '', attendees: '', tags: '', district: '',
+    organizerName: '', organizerPhone: '', organizerEmail: '', website: '',
   });
 
   const handleGoogleLogin = async () => {
@@ -164,45 +225,71 @@ export default function SubmitEventPage() {
 
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-
-  // Auto-fill district from MapPicker geo-detection
   const handleLocationChange = (loc) => { setLocation(loc); };
 
-  // Step validation
-  const canProceed0 = form.name && form.description && form.date && form.endDate && form.category && form.crowd;
+  // AI auto-fill handler
+  const handleAiAutoFill = async () => {
+    if (!form.name.trim()) { toast.error('Enter an event name first'); return; }
+    setAiLoading(true);
+    const tid = toast.loading('🔍 Searching Wikipedia & OpenStreetMap…');
+    try {
+      const data = await aiAutoFill(form.name);
+      setForm(prev => ({
+        ...prev,
+        description: data.description || prev.description,
+        category:    data.category    || prev.category,
+        district:    data.district    || prev.district,
+      }));
+      if (data.location) setLocation(data.location);
+      const imgs = data.allImages?.length > 0 ? data.allImages : (data.imageUrl ? [data.imageUrl] : []);
+      if (imgs.length > 0) setWikiImages(imgs);
+      const filled = [
+        data.description && 'Description',
+        data.category && 'Category',
+        data.location && 'Location',
+        data.district && 'District',
+        imgs.length > 0 && `${imgs.length} Image${imgs.length > 1 ? 's' : ''}`,
+      ].filter(Boolean);
+      toast.success(`✅ Auto-filled: ${filled.join(', ')}`, { id: tid, duration: 4000 });
+    } catch { toast.error('Auto-fill failed. Try a more specific name.', { id: tid }); }
+    finally { setAiLoading(false); }
+  };
+
+  // Step validation — no date required (admin sets dates)
+  const canProceed0 = form.name && form.description && form.category && form.crowd;
   const canProceed1 = location?.lat && form.district;
-  const canProceed2 = images.length > 0; // at least 1 photo required
+  const canProceed2 = images.length > 0 || wikiImages.length > 0;
 
   const handleSubmit = async () => {
-    if (!canProceed0) { toast.error('Fill in all required fields (including Category & Crowd) in Step 1'); return; }
+    if (!canProceed0) { toast.error('Fill in all required fields in Step 1'); return; }
     if (!canProceed1) { toast.error('Please pin the event location and select a district'); return; }
     if (!canProceed2) { toast.error('Please upload at least one event photo'); return; }
     if (!disclaimerAccepted) { toast.error('Please accept the disclaimer to continue'); return; }
     setLoading(true);
     try {
+      const now = new Date().toISOString();
       const fd = new FormData();
       fd.append('name', form.name);
       fd.append('description', form.description);
       fd.append('category', form.category);
-      fd.append('date', form.date);
-      fd.append('endDate', form.endDate);
+      fd.append('date', now);
+      fd.append('endDate', now);
       fd.append('crowd', form.crowd);
       if (form.attendees) fd.append('attendees', form.attendees);
       fd.append('location', JSON.stringify({
-        address:  location.address  || '',
-        district: form.district     || '',
-        lat:      location.lat,         // flat field — matches Event schema exactly
-        lng:      location.lng,         // flat field — matches Event schema exactly
+        address: location.address || '',
+        district: form.district || '',
+        lat: location.lat,
+        lng: location.lng,
         placeName: location.placeName || '',
       }));
       if (form.organizerName) fd.append('organizerName', form.organizerName);
       if (form.organizerPhone) fd.append('organizerPhone', form.organizerPhone);
       if (form.organizerEmail) fd.append('organizerEmail', form.organizerEmail);
       if (form.website) fd.append('website', form.website);
-      if (form.tags) {
-        form.tags.split(',').map(t => t.trim()).filter(Boolean).forEach(t => fd.append('tags', t));
-      }
+      if (form.tags) form.tags.split(',').map(t => t.trim()).filter(Boolean).forEach(t => fd.append('tags', t));
       images.forEach(img => fd.append('images', img));
+      if (wikiImages.length > 0 && images.length === 0) fd.append('imageUrls', JSON.stringify(wikiImages));
       await eventService.submit(fd);
       setSubmitted(true);
     } catch (err) {
@@ -276,8 +363,32 @@ export default function SubmitEventPage() {
 
             <div>
               <label className="form-label">Event Name <span className="text-red-400">*</span></label>
-              <input className="input w-full" placeholder="e.g. Thrissur Pooram 2025" value={form.name} onChange={e => set('name', e.target.value)} required />
+              <div className="relative flex items-center">
+                <input className="input w-full pr-10" placeholder="e.g. Thrissur Pooram 2025" value={form.name} onChange={e => set('name', e.target.value)} required />
+                <button type="button" onClick={handleAiAutoFill} disabled={aiLoading || !form.name.trim()}
+                  title="AI Auto-fill from Wikipedia & Maps"
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-violet-500 hover:text-violet-600 dark:text-violet-400 dark:hover:text-violet-300 disabled:opacity-30 disabled:cursor-not-allowed hover:scale-110 transition-transform">
+                  {aiLoading
+                    ? <span className="inline-block w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+                    : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M16 7.5 A7 7 0 1 0 15.4 15.5" />
+                        <line x1="15.4" y1="15.5" x2="21" y2="21" />
+                        <path d="M19 1 L20.1 4.3 L23 5.5 L20.1 6.7 L19 10 L17.9 6.7 L15 5.5 L17.9 4.3 Z" fill="currentColor" stroke="none" />
+                      </svg>
+                  }
+                </button>
+              </div>
             </div>
+
+            <AnimatePresence>
+              {aiLoading && (
+                <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-700/40 text-sm text-violet-700 dark:text-violet-300">
+                  <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="text-lg">🔍</motion.span>
+                  <span>Searching Wikipedia & OpenStreetMap for "<strong>{form.name}</strong>"…</span>
+                </motion.div>
+              )}
+            </AnimatePresence>
 
             <div>
               <label className="form-label">Description <span className="text-red-400">*</span></label>
@@ -290,49 +401,17 @@ export default function SubmitEventPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="form-label">Category <span className="text-red-400">*</span></label>
+                {form.category && <span className="ml-2 text-xs text-violet-500">✨ AI selected</span>}
                 <GlassSelect options={CATEGORY_OPTIONS} value={form.category} onChange={v => set('category', v)} />
               </div>
               <div>
-                <label className="form-label">Expected Crowd</label>
+                <label className="form-label">Expected Crowd <span className="text-red-400">*</span></label>
                 <GlassSelect options={CROWD_OPTIONS} value={form.crowd} onChange={v => set('crowd', v)} />
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="form-label">Start Date &amp; Time <span className="text-red-400">*</span></label>
-                <div className="flex gap-2">
-                  <input type="date" className="input flex-1 min-w-0"
-                    value={form.date ? form.date.split('T')[0] : ''}
-                    onChange={e => {
-                      const t = form.date?.split('T')[1] || '';
-                      set('date', e.target.value + (t ? 'T' + t : ''));
-                    }} required />
-                  <input type="time" className="input w-28 flex-shrink-0"
-                    value={form.date?.includes('T') ? form.date.split('T')[1] : ''}
-                    onChange={e => {
-                      const d = form.date?.split('T')[0] || '';
-                      if (d) set('date', d + 'T' + e.target.value);
-                    }} />
-                </div>
-              </div>
-              <div>
-                <label className="form-label">End Date &amp; Time <span className="text-red-400">*</span></label>
-                <div className="flex gap-2">
-                  <input type="date" className="input flex-1 min-w-0"
-                    value={form.endDate ? form.endDate.split('T')[0] : ''}
-                    onChange={e => {
-                      const t = form.endDate?.split('T')[1] || '';
-                      set('endDate', e.target.value + (t ? 'T' + t : ''));
-                    }} required />
-                  <input type="time" className="input w-28 flex-shrink-0"
-                    value={form.endDate?.includes('T') ? form.endDate.split('T')[1] : ''}
-                    onChange={e => {
-                      const d = form.endDate?.split('T')[0] || '';
-                      if (d) set('endDate', d + 'T' + e.target.value);
-                    }} />
-                </div>
-              </div>
+            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-700/40 text-xs text-amber-700 dark:text-amber-300">
+              📅 <strong>Note:</strong> Start & End dates will be set by the admin after review. No need to enter them now.
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -415,9 +494,30 @@ export default function SubmitEventPage() {
 
             <div>
               <label className="form-label">Event Photos <span className="text-red-500">*</span> <span className="text-xs text-gray-400">(up to 5 · First is Cover)</span></label>
+
+              <AnimatePresence>
+                {wikiImages.length > 0 && (
+                  <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}
+                    className="mb-3 p-3 bg-violet-50 dark:bg-violet-900/20 rounded-xl border border-violet-200 dark:border-violet-700/40">
+                    <p className="text-xs font-semibold text-violet-600 dark:text-violet-400 mb-2 flex items-center gap-1">✨ Wikipedia Images (auto-fetched)</p>
+                    <div className="flex gap-2 flex-wrap">
+                      {wikiImages.map((url, i) => (
+                        <div key={i} className="relative group">
+                          <img src={url} alt="Wiki" className="h-20 w-28 object-cover rounded-lg border-2 border-violet-300 dark:border-violet-600" onError={e => { e.target.style.display='none'; }} />
+                          <span className="absolute top-1 left-1 text-[10px] bg-violet-600 text-white px-1.5 py-0.5 rounded font-bold">Wiki</span>
+                          <button type="button" onClick={() => setWikiImages(wikiImages.filter((_, idx) => idx !== i))}
+                            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs hidden group-hover:flex items-center justify-center">✕</button>
+                        </div>
+                      ))}
+                    </div>
+                    <p className="text-xs text-violet-500 mt-2">These images will be used if no local files are uploaded.</p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
               <ImageUploadZone images={images} onChange={setImages} />
-              {images.length === 0 && (
-                <p className="text-xs text-amber-500 mt-1.5">⚠️ At least one photo is required to submit</p>
+              {images.length === 0 && wikiImages.length === 0 && (
+                <p className="text-xs text-amber-500 mt-1.5">⚠️ At least one photo is required (upload or use ✨ AI Fill)</p>
               )}
             </div>
 

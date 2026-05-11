@@ -76,42 +76,26 @@ function Countdown({ date, endDate }) {
       const glowEnd = urgency === 'critical' ? 'rgba(239,68,68,0.18)' : urgency === 'soon' ? 'rgba(251,146,60,0.14)' : 'rgba(34,197,94,0.14)';
 
       const EndUnit = ({ val, lbl }) => (
-        <div className="flex flex-col items-center gap-2">
-          <div style={{
+        <div className="timer-unit">
+          <div className="timer-box" style={{
             background: 'rgba(255,255,255,0.04)',
             border: `1px solid ${accentEnd}22`,
-            borderRadius: 16,
-            minWidth: 72,
-            height: 72,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
           }}>
             <motion.span
               key={val}
               initial={{ y: -12, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ type: 'spring', stiffness: 600, damping: 32 }}
+              className="timer-val"
               style={{
-                fontSize: 36,
-                fontWeight: 900,
-                fontVariantNumeric: 'tabular-nums',
                 color: accentEnd,
-                lineHeight: 1,
-                letterSpacing: '-0.02em',
                 textShadow: `0 0 24px ${accentEnd}55`,
               }}
             >
               {String(val).padStart(2, '0')}
             </motion.span>
           </div>
-          <span style={{
-            fontSize: 10,
-            fontWeight: 800,
-            textTransform: 'uppercase',
-            letterSpacing: '0.18em',
-            color: 'rgba(148,163,184,0.7)',
-          }}>{lbl}</span>
+          <span className="timer-lbl" style={{ color: 'rgba(148,163,184,0.7)' }}>{lbl}</span>
         </div>
       );
 
@@ -151,29 +135,23 @@ function Countdown({ date, endDate }) {
             }}>Ending In</span>
           </div>
 
-          {/* Numbers — identical sizing/spacing to "Starts In" */}
-          <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', gap: 12 }}>
+          {/* Numbers — responsive layout */}
+          <div className="flex items-start justify-center gap-1.5 sm:gap-3 px-2 sm:px-3 py-4 sm:py-5">
             {te.d > 0 && (
               <>
                 <EndUnit val={te.d} lbl="Days" />
-                <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: 28, fontWeight: 300, marginTop: 22, lineHeight: 1 }}>:</span>
+                <span className="timer-sep">:</span>
               </>
             )}
             <EndUnit val={te.h} lbl="Hours" />
-            <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: 28, fontWeight: 300, marginTop: 22, lineHeight: 1 }}>:</span>
+            <span className="timer-sep">:</span>
             <EndUnit val={te.m} lbl="Mins" />
-            <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: 28, fontWeight: 300, marginTop: 22, lineHeight: 1 }}>:</span>
+            <span className="timer-sep">:</span>
             <EndUnit val={te.s} lbl="Secs" />
           </div>
           {/* Date footer */}
-          <div style={{
-            borderTop: 'rgba(255,255,255,0.06) solid 1px',
-            padding: '10px 24px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            gap: 8,
-          }}>
+          <div className="flex items-center justify-between flex-wrap gap-x-2 gap-y-1 px-3 sm:px-6 py-2.5"
+            style={{ borderTop: 'rgba(255,255,255,0.06) solid 1px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.6)" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
               <span style={{ fontSize: 11, color: 'rgba(148,163,184,0.7)', fontWeight: 600 }}>
@@ -216,13 +194,7 @@ function Countdown({ date, endDate }) {
           <span className="text-green-400 font-bold text-base tracking-widest uppercase">Happening Right Now!</span>
         </div>
         {/* Date footer */}
-        <div style={{
-          padding: '10px 24px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 8,
-        }}>
+        <div className="flex items-center justify-between flex-wrap gap-x-2 gap-y-1 px-3 sm:px-6 py-2.5">
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(148,163,184,0.6)" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>
             <span style={{ fontSize: 11, color: 'rgba(148,163,184,0.7)', fontWeight: 600 }}>
@@ -257,42 +229,26 @@ function Countdown({ date, endDate }) {
     : 'transparent';
 
   const Unit = ({ val, lbl }) => (
-    <div className="flex flex-col items-center gap-2">
-      <div style={{
+    <div className="timer-unit">
+      <div className="timer-box" style={{
         background: 'rgba(255,255,255,0.04)',
         border: '1px solid rgba(255,255,255,0.08)',
-        borderRadius: 16,
-        minWidth: 72,
-        height: 72,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
       }}>
         <motion.span
           key={val}
           initial={{ y: -12, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ type: 'spring', stiffness: 600, damping: 32 }}
+          className="timer-val"
           style={{
-            fontSize: 36,
-            fontWeight: 900,
-            fontVariantNumeric: 'tabular-nums',
             color: accentColor,
-            lineHeight: 1,
             textShadow: urgent !== 'none' ? `0 0 24px ${accentColor}55` : 'none',
-            letterSpacing: '-0.02em',
           }}
         >
           {String(val).padStart(2, '0')}
         </motion.span>
       </div>
-      <span style={{
-        fontSize: 10,
-        fontWeight: 800,
-        textTransform: 'uppercase',
-        letterSpacing: '0.18em',
-        color: 'rgba(148,163,184,0.7)',
-      }}>{lbl}</span>
+      <span className="timer-lbl" style={{ color: 'rgba(148,163,184,0.7)' }}>{lbl}</span>
     </div>
   );
 
@@ -322,18 +278,18 @@ function Countdown({ date, endDate }) {
         }}>Starts In</span>
       </div>
 
-      {/* Numbers */}
-      <div style={{ padding: '20px 24px', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', gap: 12 }}>
+      {/* Numbers — responsive layout */}
+      <div className="flex items-start justify-center gap-1.5 sm:gap-3 px-2 sm:px-3 py-4 sm:py-5">
         {t.d > 0 && (
           <>
             <Unit val={t.d} lbl="Days" />
-            <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: 28, fontWeight: 300, marginTop: 22, lineHeight: 1 }}>:</span>
+            <span className="timer-sep">:</span>
           </>
         )}
         <Unit val={t.h} lbl="Hours" />
-        <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: 28, fontWeight: 300, marginTop: 22, lineHeight: 1 }}>:</span>
+        <span className="timer-sep">:</span>
         <Unit val={t.m} lbl="Mins" />
-        <span style={{ color: 'rgba(255,255,255,0.12)', fontSize: 28, fontWeight: 300, marginTop: 22, lineHeight: 1 }}>:</span>
+        <span className="timer-sep">:</span>
         <Unit val={t.s} lbl="Secs" />
       </div>
     </div>

@@ -498,3 +498,22 @@ button, .btn-primary, .btn-secondary, .btn-ghost {
 }
 
 
+
+/* ── Countdown Timer Units (Responsive) ── */
+.timer-unit {
+  @apply flex flex-col items-center gap-0.5 sm:gap-2;
+}
+.timer-box {
+  @apply rounded-xl sm:rounded-2xl
+         w-[52px] h-[52px] sm:w-[68px] sm:h-[68px]
+         flex items-center justify-center transition-all duration-300;
+}
+.timer-val {
+  @apply text-2xl sm:text-[34px] font-black tabular-nums leading-none tracking-tight;
+}
+.timer-lbl {
+  @apply text-[8px] sm:text-[10px] font-extrabold uppercase tracking-[0.08em] sm:tracking-[0.16em];
+}
+.timer-sep {
+  @apply text-white/10 text-base sm:text-2xl font-light mt-3 sm:mt-[22px] self-start;
+}
