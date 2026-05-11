@@ -14,19 +14,30 @@ const ADMIN_EMAILS = ['evora444@gmail.com', 'nibi2810@gmail.com'];
 
 // ── Verify Firebase ID token using Google's public keys (no Admin SDK needed) ─
 async function verifyFirebaseIdToken(idToken) {
-  const projectId = process.env.FIREBASE_PROJECT_ID || 'zz0n-22d1c';
-
-  // Fetch Google's public keys
+  // Fetch Google's public signing keys (cached by Google, rotate ~weekly)
   const keyRes = await fetch('https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com');
+  if (!keyRes.ok) throw new Error('Failed to fetch Firebase public keys');
   const keys = await keyRes.json();
 
-  // Decode header to get key ID
-  const headerB64 = idToken.split('.')[0];
-  const header = JSON.parse(Buffer.from(headerB64, 'base64url').toString());
-  const publicKey = keys[header.kid];
-  if (!publicKey) throw new Error('Unknown key ID in Firebase token');
+  // Safe base64url → base64 conversion (works on all Node.js versions)
+  const b64decode = (str) => Buffer.from(str.replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8');
 
-  // Verify token
+  const parts = idToken.split('.');
+  if (parts.length !== 3) throw new Error('Malformed JWT token');
+
+  const header  = JSON.parse(b64decode(parts[0]));
+  const payload = JSON.parse(b64decode(parts[1]));
+
+  // Extract project ID from the token's 'aud' claim (no env dependency)
+  const projectId = Array.isArray(payload.aud) ? payload.aud[0] : payload.aud;
+  if (!projectId) throw new Error('No audience in Firebase token');
+
+  console.log(`🔑 Verifying Firebase token for project: ${projectId}`);
+
+  const publicKey = keys[header.kid];
+  if (!publicKey) throw new Error(`Unknown key ID: ${header.kid}`);
+
+  // Verify signature, audience and issuer
   const decoded = jwt.verify(idToken, publicKey, {
     algorithms: ['RS256'],
     audience: projectId,
