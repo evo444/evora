@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
+import { signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '../firebase';
 
 const AuthContext = createContext(null);
 export const useAuth = () => useContext(AuthContext);
@@ -30,7 +32,20 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // ── Standard email/password login ─────────────────────────────────────────
+  // ── Google Sign-In (Firebase → backend) ───────────────────────────────────
+  const loginWithGoogle = async () => {
+    const result  = await signInWithPopup(auth, googleProvider);
+    const idToken = await result.user.getIdToken();
+    const res     = await API.post('/api/auth/google', { idToken });
+    const { token: t, user: u } = res.data;
+    localStorage.setItem('evora_token', t);
+    API.defaults.headers.common['Authorization'] = `Bearer ${t}`;
+    setToken(t);
+    setUser(u);
+    return u;
+  };
+
+  // ── Email/password login (kept for admin CLI use) ──────────────────────────
   const login = async (email, password) => {
     const res = await API.post('/api/auth/login', { email, password });
     const { token: t, user: u } = res.data;
@@ -41,7 +56,7 @@ export const AuthProvider = ({ children }) => {
     return u;
   };
 
-  // ── Register (OTP flow handled in RegisterPage directly) ───────────────────
+  // ── Register ───────────────────────────────────────────────────────────────
   const register = async (name, email, password) => {
     const res = await API.post('/api/auth/register', { name, email, password });
     const { token: t, user: u } = res.data;
@@ -65,7 +80,7 @@ export const AuthProvider = ({ children }) => {
   const isAdmin = () => user?.role === 'admin';
 
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout, isAdmin }}>
+    <AuthContext.Provider value={{ user, token, loading, login, loginWithGoogle, register, logout, isAdmin }}>
       {children}
     </AuthContext.Provider>
   );
