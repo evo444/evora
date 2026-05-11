@@ -61,9 +61,6 @@ export default function Navbar() {
     setSearchInput('');
   };
 
-  const navLinks = [
-    ...(isAdmin() ? [{ to: '/admin', label: 'Admin' }] : []),
-  ];
 
   const activeClass   = 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white';
   const inactiveClass = 'text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800';
@@ -101,15 +98,6 @@ export default function Navbar() {
             <span className="text-xl font-bold text-gray-900 dark:text-white tracking-tight">Zzon</span>
           </Link>
 
-          {/* Desktop Nav Links */}
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map(l => (
-              <Link key={l.to} to={l.to}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${location.pathname === l.to && !location.search ? activeClass : inactiveClass}`}>
-                {l.label}
-              </Link>
-            ))}
-          </div>
 
           {/* Right side */}
           <div className="flex items-center gap-1">
