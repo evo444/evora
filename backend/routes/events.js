@@ -117,7 +117,19 @@ router.get('/:id', async (req, res) => {
 // POST /api/events/submit — logged-in user submits event for approval
 router.post('/submit', protect, upload.array('images', 5), async (req, res) => {
   try {
-    const images = req.files ? req.files.map(f => `/uploads/${f.filename}`) : [];
+    // Uploaded files take priority; fall back to imageUrls (wiki URLs from AI fill)
+    let images = [];
+    if (req.files && req.files.length > 0) {
+      images = req.files.map(f => `/uploads/${f.filename}`);
+    } else if (req.body.imageUrls) {
+      try { images = JSON.parse(req.body.imageUrls); } catch (_) {}
+    }
+
+    // Require at least one image
+    if (!images || images.length === 0) {
+      return res.status(400).json({ message: 'At least one event photo is required' });
+    }
+
     const locationData = typeof req.body.location === 'string' ? JSON.parse(req.body.location) : req.body.location;
     const event = await Event.create({
       ...req.body,
