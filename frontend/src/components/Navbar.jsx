@@ -1,4 +1,4 @@
-// v2 — OPTIONS: DARKMOD / SUGGESTIONS / REPORT (no icons)
+// v3 — OPTIONS: DARKMOD / SUGGESTIONS / REPORT — no icons — built 2026-05-11
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
