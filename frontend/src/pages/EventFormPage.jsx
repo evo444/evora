@@ -71,6 +71,30 @@ function pickWikiImage(name) {
   return null;
 }
 
+// ── Compress an image URL → File (canvas, max 800px, JPEG 80%) ─────────────
+async function compressImageUrlToFile(url, fileName = 'ai-image.jpg') {
+  // Use allorigins CORS proxy to fetch the image cross-origin
+  const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+  const res = await fetch(proxyUrl);
+  const blob = await res.blob();
+  const bmp  = await createImageBitmap(blob);
+
+  const MAX = 800;
+  let w = bmp.width, h = bmp.height;
+  if (w > MAX) { h = Math.round(h * MAX / w); w = MAX; }
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  canvas.getContext('2d').drawImage(bmp, 0, 0, w, h);
+
+  return new Promise((resolve, reject) => {
+    canvas.toBlob(
+      (b) => b ? resolve(new File([b], fileName, { type: 'image/jpeg' })) : reject(new Error('canvas empty')),
+      'image/jpeg', 0.8
+    );
+  });
+}
+
 // ── AI Auto-fill: Wikipedia search + Nominatim geocoding ────────────────────
 async function autoFillFromWikipedia(eventName) {
   const result = { description: '', shortDescription: '', category: '', location: null, district: '', imageUrl: '', extraImages: [] };
@@ -218,15 +242,30 @@ export default function EventFormPage() {
         district: data.district || prev.district,
       }));
       if (data.location) setLocation(data.location);
+
       // Use all collected Wikipedia images
       const imgs = data.allImages?.length > 0 ? data.allImages : (data.imageUrl ? [data.imageUrl] : []);
       if (imgs.length > 0) setWikiImages(imgs);
+
+      // ── Auto-compress & upload the first image ──────────────────────────
+      let imageAutoUploaded = false;
+      if (imgs.length > 0) {
+        toast.loading('📸 Compressing & uploading image…', { id: toastId });
+        try {
+          const file = await compressImageUrlToFile(imgs[0], `${form.name.slice(0,30).replace(/\s+/g,'-')}.jpg`);
+          setImages([file]);
+          imageAutoUploaded = true;
+        } catch (_) {
+          // compression failed — wiki URL fallback still in wikiImages
+        }
+      }
+
       const filled = [
         data.description && 'Description',
         data.category && 'Category',
         data.location && 'Location',
         data.district && 'District',
-        imgs.length > 0 && `${imgs.length} Image${imgs.length > 1 ? 's' : ''}`,
+        imageAutoUploaded ? '📸 Image (compressed)' : (imgs.length > 0 && `${imgs.length} image URL${imgs.length > 1 ? 's' : ''}`),
       ].filter(Boolean);
       toast.success(`✅ Auto-filled: ${filled.join(', ')}`, { id: toastId, duration: 4000 });
     } catch (err) {
@@ -485,9 +524,24 @@ export default function EventFormPage() {
             )}
 
             {images.length > 0 && (
-              <div className="flex gap-2 mt-2 flex-wrap">
-                {images.map((f, i) => (
-                  <div key={i} className="text-xs bg-primary-50 dark:bg-primary-900/20 text-primary-600 dark:text-primary-400 px-2 py-1 rounded-lg">{f.name}</div>
+              <div className="flex gap-2 mt-2 flex-wrap items-center">
+                {images.map((file, i) => (
+                  <div key={i} className="relative group">
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt="preview"
+                      className="h-20 w-28 object-cover rounded-lg border-2 border-primary-300 dark:border-primary-600"
+                    />
+                    {file.name.endsWith('.jpg') && file.name !== file.name.toUpperCase() && (
+                      <span className="absolute top-1 left-1 text-[10px] bg-violet-600 text-white px-1.5 py-0.5 rounded font-bold">AI</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => setImages([])}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs hidden group-hover:flex items-center justify-center shadow"
+                    >✕</button>
+                    <p className="text-[10px] text-gray-400 mt-0.5 truncate max-w-[7rem]">{file.name}</p>
+                  </div>
                 ))}
               </div>
             )}
