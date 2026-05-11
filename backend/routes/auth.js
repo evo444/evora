@@ -5,26 +5,35 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const OTP = require('../models/OTP');
 const { generateOTP, sendOTPEmail } = require('../utils/emailService');
-const admin = require('firebase-admin');
-
-// ── Initialize Firebase Admin (lazy, once) ─────────────────────────────────
-if (!admin.apps.length) {
-  const projectId    = process.env.FIREBASE_PROJECT_ID;
-  const clientEmail  = process.env.FIREBASE_CLIENT_EMAIL;
-  // Render stores the private key as a single-line string with literal \n — fix that
-  const privateKey   = process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n');
-
-  if (projectId && clientEmail && privateKey) {
-    admin.initializeApp({
-      credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
-    });
-    console.log('✅ Firebase Admin SDK initialized');
-  } else {
-    console.warn('⚠️  Firebase Admin SDK not initialized — missing FIREBASE_* env vars');
-  }
-}
 
 const generateToken = (id) => jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
+
+// ── ADMIN EMAILS — automatically get admin role on Google sign-in ──────────
+const ADMIN_EMAILS = ['evora444@gmail.com', 'nibi2810@gmail.com'];
+
+
+// ── Verify Firebase ID token using Google's public keys (no Admin SDK needed) ─
+async function verifyFirebaseIdToken(idToken) {
+  const projectId = process.env.FIREBASE_PROJECT_ID || 'zz0n-22d1c';
+
+  // Fetch Google's public keys
+  const keyRes = await fetch('https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com');
+  const keys = await keyRes.json();
+
+  // Decode header to get key ID
+  const headerB64 = idToken.split('.')[0];
+  const header = JSON.parse(Buffer.from(headerB64, 'base64url').toString());
+  const publicKey = keys[header.kid];
+  if (!publicKey) throw new Error('Unknown key ID in Firebase token');
+
+  // Verify token
+  const decoded = jwt.verify(idToken, publicKey, {
+    algorithms: ['RS256'],
+    audience: projectId,
+    issuer: `https://securetoken.google.com/${projectId}`,
+  });
+  return decoded;
+}
 
 // ──────────────────────────────────────────────
 // GOOGLE SIGN-IN
@@ -34,40 +43,40 @@ router.post('/google', async (req, res) => {
     const { idToken } = req.body;
     if (!idToken) return res.status(400).json({ message: 'idToken is required' });
 
-    if (!admin.apps.length) {
-      return res.status(503).json({ message: 'Google auth not configured on server yet' });
+    // Verify the Firebase ID token (works with any Firebase project)
+    let decoded;
+    try {
+      decoded = await verifyFirebaseIdToken(idToken);
+    } catch (verifyErr) {
+      console.error('Token verify error:', verifyErr.message);
+      return res.status(401).json({ message: 'Invalid or expired Google token. Please try again.' });
     }
 
-    // Verify the Firebase ID token
-    const decoded = await admin.auth().verifyIdToken(idToken);
-    const { name, email, picture, uid } = decoded;
-
+    const { name, email, picture, sub: uid } = decoded;
     if (!email) return res.status(400).json({ message: 'No email in Google account' });
 
     // Find or create the user
     let user = await User.findOne({ email: email.toLowerCase() });
+    const isAdminEmail = ADMIN_EMAILS.includes(email.toLowerCase());
 
     if (!user) {
-      // New user — create account (no password needed for Google users)
       user = await User.create({
         name: name || email.split('@')[0],
         email: email.toLowerCase(),
-        password: uid,           // Firebase UID used as placeholder (bcrypt hashed by pre-save hook)
+        password: uid,
         avatar: picture || '',
         googleId: uid,
-        approved: true,          // Google accounts auto-approved
+        approved: true,
+        role: isAdminEmail ? 'admin' : 'user',
       });
-      console.log(`✅ New Google user created: ${email}`);
+      console.log(`✅ New Google user created: ${email} (role: ${user.role})`);
     } else {
-      // Update avatar if they now have one
-      if (picture && !user.avatar) {
-        user.avatar = picture;
-        await user.save();
-      }
-      if (!user.googleId) {
-        user.googleId = uid;
-        await user.save();
-      }
+      // Update fields
+      let changed = false;
+      if (picture && !user.avatar) { user.avatar = picture; changed = true; }
+      if (!user.googleId) { user.googleId = uid; changed = true; }
+      if (isAdminEmail && user.role !== 'admin') { user.role = 'admin'; changed = true; }
+      if (changed) await user.save();
     }
 
     const token = generateToken(user._id);
@@ -78,12 +87,10 @@ router.post('/google', async (req, res) => {
     });
   } catch (err) {
     console.error('Google auth error:', err.message);
-    if (err.code === 'auth/id-token-expired') {
-      return res.status(401).json({ message: 'Google session expired. Please sign in again.' });
-    }
-    res.status(500).json({ message: 'Google authentication failed' });
+    res.status(500).json({ message: 'Google authentication failed: ' + err.message });
   }
 });
+
 
 // ──────────────────────────────────────────────
 // REGISTRATION FLOW (2 steps)
