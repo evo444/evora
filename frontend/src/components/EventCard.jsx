@@ -7,6 +7,14 @@ import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+// Resolve any image path to a full URL
+function resolveImage(raw) {
+  if (!raw) return null;
+  if (raw.startsWith('http')) return raw;          // already full URL (Wikimedia, etc.)
+  if (raw.startsWith('/')) return `${API_URL}${raw}`; // /uploads/file.jpg
+  return `${API_URL}/uploads/${raw}`;               // bare filename
+}
+
 // Returns ms remaining until targetDate, or null if already passed
 function useIsLive(startDate, endDate) {
   const check = () => {
@@ -37,6 +45,11 @@ const categoryColors = {
 
 function formatDate(dateStr) {
   if (!dateStr) return '';
+  return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+function formatDateFull(dateStr) {
+  if (!dateStr) return '';
   return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
 }
 
@@ -52,10 +65,17 @@ const cardVariants = {
 export default function EventCard({ event, index = 0, onDelete, onToggleTrending }) {
   const { isAdmin } = useAuth();
   const isLive = useIsLive(event.date, event.endDate);
+  const [imgError, setImgError] = useState(false);
+  const imageUrl = resolveImage(event.images?.[0]);
 
-  const imageUrl = event.images?.[0]
-    ? (event.images[0].startsWith('http') ? event.images[0] : `${API_URL}${event.images[0]}`)
-    : null;
+  // Determine the "added by" display name
+  const addedByName = event.addedBy === 'AI'
+    ? 'AI'
+    : event.submittedBy?.name
+      ? event.submittedBy.name
+      : event.createdBy?.name
+        ? event.createdBy.name
+        : null;
 
   return (
     <motion.div
@@ -69,18 +89,15 @@ export default function EventCard({ event, index = 0, onDelete, onToggleTrending
     >
       {/* Image */}
       <div className="relative h-48 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 overflow-hidden">
-        {imageUrl ? (
+        {imageUrl && !imgError ? (
           <motion.img
             src={imageUrl}
             alt={event.name}
             loading="lazy"
-            crossOrigin="anonymous"
+            referrerPolicy="no-referrer"
             className="w-full h-full object-cover"
-            onLoad={e => e.currentTarget.classList.add('img-loaded')}
-            onError={e => {
-              // If the external image fails to load, hide it to show the gradient placeholder
-              e.currentTarget.style.display = 'none';
-            }}
+            onLoad={e => { e.currentTarget.style.opacity = '1'; }}
+            onError={() => setImgError(true)}
             style={{ opacity: 0, transition: 'opacity 0.4s ease', willChange: 'transform' }}
             whileHover={{ scale: 1.07 }}
             transition={{ ...spring, stiffness: 260, damping: 22 }}
@@ -139,7 +156,8 @@ export default function EventCard({ event, index = 0, onDelete, onToggleTrending
           {event.name}
         </h3>
 
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2">
+        {/* Description — show more text (up to 4 lines) */}
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-4 leading-relaxed">
           {event.shortDescription || event.description}
         </p>
 
@@ -157,34 +175,40 @@ export default function EventCard({ event, index = 0, onDelete, onToggleTrending
               </span>
             </div>
           )}
+
+          {/* Start → End Date */}
           <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-            <span>📅</span><span>{formatDate(event.date)}</span>
+            <span>📅</span>
+            <span>
+              {formatDate(event.date)}
+              {event.endDate && (
+                <> → {formatDate(event.endDate)}</>
+              )}
+            </span>
           </div>
+
+          {/* Location */}
           <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
             <span>📍</span>
             <span className="line-clamp-1">{event.location?.district || event.location?.address}</span>
           </div>
+
           {event.attendees > 0 && (
             <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
               <span>👥</span><span>{event.attendees.toLocaleString()} attending</span>
             </div>
           )}
-          {/* Added by / source badge */}
-          {(event.addedBy === 'AI' || event.submittedBy?.name || event.addedBy === 'admin' || event.createdBy?.name) && (
-            <div className="flex items-center gap-1.5 text-xs">
-              {event.addedBy === 'AI' ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-800/30 font-semibold text-[10px]">
-                  🤖 AI
-                </span>
-              ) : event.submittedBy?.name ? (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-800/30 font-semibold text-[10px]">
-                  👤 {event.submittedBy.name}
-                </span>
-              ) : (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-50 dark:bg-purple-900/20 text-purple-700 dark:text-purple-400 border border-purple-100 dark:border-purple-800/30 font-semibold text-[10px]">
-                  👑 Admin
-                </span>
-              )}
+
+          {/* Added by — shown as a subtle link-text (no admin icon) */}
+          {addedByName && (
+            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+              <span>✍️</span>
+              <Link
+                to={`/events/${event._id}`}
+                className="hover:underline hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+              >
+                Added by <span className="font-semibold text-gray-700 dark:text-gray-300">{addedByName}</span>
+              </Link>
             </div>
           )}
         </div>
