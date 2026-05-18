@@ -4,7 +4,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Crown, User } from 'lucide-react';
+import { Crown, User, Search, Menu, ChevronDown } from 'lucide-react';
 import FeedbackModal from './FeedbackModal';
 
 const dropdownSpring = { type: 'spring', stiffness: 380, damping: 28 };
@@ -131,9 +131,7 @@ export default function Navbar() {
                 className="p-2 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-gray-600 dark:text-gray-300"
                 title="Search"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-                </svg>
+                <Search className="w-5 h-5" strokeWidth={2} />
               </button>
             </div>
 
@@ -158,7 +156,7 @@ export default function Navbar() {
                     </div>
                   )}
                   <span className="hidden sm:block text-sm font-medium text-gray-700 dark:text-gray-300">{user.name.split(' ')[0]}</span>
-                  <span className="text-gray-400 text-xs">▾</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-gray-400" strokeWidth={2.5} />
                 </button>
                 <AnimatePresence>
                   {profileOpen && (
@@ -208,9 +206,7 @@ export default function Navbar() {
                   }`}
                 style={{ minWidth: 40, minHeight: 40, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
-                </svg>
+                <Menu className="w-5 h-5" strokeWidth={2} />
               </motion.button>
 
               <AnimatePresence>
