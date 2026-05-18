@@ -2,8 +2,57 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 const path = require('path');
+const https = require('https');
+const http = require('http');
 const Event = require('../models/Event');
 const { protect, adminOnly } = require('../middleware/auth');
+
+// ── Image proxy — serves external images (Wikimedia/CORS) through our backend ──
+router.get('/proxy-image', async (req, res) => {
+  const { url } = req.query;
+  if (!url || !/^https?:\/\//i.test(url)) {
+    return res.status(400).json({ message: 'Invalid URL' });
+  }
+  // Only allow wikimedia and trusted image hosts
+  const allowed = ['upload.wikimedia.org', 'commons.wikimedia.org', 'live.staticflickr.com'];
+  let parsedUrl;
+  try { parsedUrl = new URL(url); } catch { return res.status(400).end(); }
+  if (!allowed.some(h => parsedUrl.hostname.endsWith(h))) {
+    return res.status(403).json({ message: 'Host not allowed' });
+  }
+
+  const fetchUrl = (targetUrl, remainingRedirects = 3) => {
+    if (remainingRedirects <= 0) { res.status(502).end(); return; }
+    const proto = targetUrl.startsWith('https') ? https : http;
+    const reqHeaders = {
+      'User-Agent': 'Mozilla/5.0 (compatible; ZzonBot/1.0; +https://zzon.vercel.app)',
+      'Accept': 'image/*,*/*;q=0.8',
+      // Wikimedia requires a matching Referer — send their own domain to pass hotlink check
+      'Referer': `https://${new URL(targetUrl).hostname}/`,
+    };
+    const request = proto.get(targetUrl, { headers: reqHeaders }, (upstream) => {
+      // Follow redirects
+      if ((upstream.statusCode === 301 || upstream.statusCode === 302 || upstream.statusCode === 307 || upstream.statusCode === 308)
+          && upstream.headers.location) {
+        upstream.resume(); // drain the body
+        const next = upstream.headers.location.startsWith('http')
+          ? upstream.headers.location
+          : new URL(upstream.headers.location, targetUrl).href;
+        return fetchUrl(next, remainingRedirects - 1);
+      }
+      if (upstream.statusCode !== 200) {
+        return res.status(upstream.statusCode || 502).end();
+      }
+      res.setHeader('Content-Type', upstream.headers['content-type'] || 'image/jpeg');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      upstream.pipe(res);
+    });
+    request.on('error', () => res.status(502).end());
+  };
+
+  fetchUrl(url);
+});
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, 'uploads/'),

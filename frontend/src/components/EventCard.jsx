@@ -7,9 +7,12 @@ import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// Resolve any image path to a full URL
+// Resolve any image path to a full URL — proxy wikimedia to avoid hotlink/CORS blocks
 function resolveImage(raw) {
   if (!raw) return null;
+  if (raw.includes('wikimedia.org') || raw.includes('wikipedia.org')) {
+    return `${API_URL}/api/events/proxy-image?url=${encodeURIComponent(raw)}`;
+  }
   if (raw.startsWith('http')) return raw;          // already full URL (Wikimedia, etc.)
   if (raw.startsWith('/')) return `${API_URL}${raw}`; // /uploads/file.jpg
   return `${API_URL}/uploads/${raw}`;               // bare filename
@@ -75,7 +78,7 @@ export default function EventCard({ event, index = 0, onDelete, onToggleTrending
       ? event.submittedBy.name
       : event.createdBy?.name
         ? event.createdBy.name
-        : null;
+        : 'Admin'; // fallback: admin-created events
 
   return (
     <motion.div
@@ -156,28 +159,28 @@ export default function EventCard({ event, index = 0, onDelete, onToggleTrending
           {event.name}
         </h3>
 
-        {/* Description — show more text (up to 4 lines) */}
-        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-4 leading-relaxed">
-          {event.shortDescription || event.description}
+        {/* Description — full text, no truncation */}
+        <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 leading-relaxed">
+          {event.description || event.shortDescription}
         </p>
 
-        {/* Meta */}
-        <div className="space-y-1.5 mb-3">
-          {/* Live Now indicator */}
-          {isLive && (
-            <div className="flex items-center gap-1.5">
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 text-green-600 dark:text-green-400">
-                <span className="relative flex h-1 w-1">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
-                  <span className="relative inline-flex rounded-full h-1 w-1 bg-green-500" />
-                </span>
-                Live Now
+        {/* Live Now indicator */}
+        {isLive && (
+          <div className="flex items-center gap-1.5 mb-2">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800/30 text-green-600 dark:text-green-400">
+              <span className="relative flex h-1 w-1">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
+                <span className="relative inline-flex rounded-full h-1 w-1 bg-green-500" />
               </span>
-            </div>
-          )}
+              Live Now
+            </span>
+          </div>
+        )}
 
-          {/* Start → End Date */}
-          <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+        {/* Date · Location · Added by — ALL on one line */}
+        <div className="flex items-center flex-wrap gap-x-1 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400 mb-3">
+          {/* Date range */}
+          <span className="flex items-center gap-1 flex-shrink-0">
             <span>📅</span>
             <span>
               {formatDate(event.date)}
@@ -185,31 +188,32 @@ export default function EventCard({ event, index = 0, onDelete, onToggleTrending
                 <> → {formatDate(event.endDate)}</>
               )}
             </span>
-          </div>
+          </span>
 
-          {/* Location */}
-          <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-            <span>📍</span>
-            <span className="line-clamp-1">{event.location?.district || event.location?.address}</span>
-          </div>
-
-          {event.attendees > 0 && (
-            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-              <span>👥</span><span>{event.attendees.toLocaleString()} attending</span>
-            </div>
+          {/* Separator */}
+          {(event.location?.district || event.location?.address) && (
+            <span className="text-gray-300 dark:text-gray-600 flex-shrink-0">·</span>
           )}
 
-          {/* Added by — shown as a subtle link-text (no admin icon) */}
+          {/* Location */}
+          {(event.location?.district || event.location?.address) && (
+            <span className="flex items-center gap-1 flex-shrink-0">
+              <span>📍</span>
+              <span className="truncate max-w-[80px] sm:max-w-[100px]">{event.location?.district || event.location?.address}</span>
+            </span>
+          )}
+
+          {/* Separator */}
           {addedByName && (
-            <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-              <span>✍️</span>
-              <Link
-                to={`/events/${event._id}`}
-                className="hover:underline hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
-              >
-                Added by <span className="font-semibold text-gray-700 dark:text-gray-300">{addedByName}</span>
-              </Link>
-            </div>
+            <span className="text-gray-300 dark:text-gray-600 flex-shrink-0">·</span>
+          )}
+
+          {/* Added by */}
+          {addedByName && (
+            <span className="flex items-center gap-1 flex-shrink-0">
+              <span className="text-gray-400 dark:text-gray-500">Added by</span>
+              <span className="font-semibold text-gray-600 dark:text-gray-300">{addedByName}</span>
+            </span>
           )}
         </div>
 

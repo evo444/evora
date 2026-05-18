@@ -212,15 +212,30 @@ async function fetchAndInsertNewEvents() {
 
   console.log(`[AI Fetcher] Week window: ${weekStart.toLocaleDateString('en-IN')} → ${weekEnd.toLocaleDateString('en-IN')}`);
 
-  // Load existing event names to avoid duplicates
-  const existing = await Event.find({}).select('name').lean();
+  // Load existing event names to avoid duplicates (both pending and approved)
+  const existing = await Event.find({}).select('name date location').lean();
   const existingNames = new Set(existing.map(e => e.name.trim().toLowerCase()));
 
-  // Filter: event STARTS this week + not already in DB
+  // Also build a set of "base names" (strip year suffix like "2026", "2025" etc.)
+  const stripYear = (n) => n.trim().toLowerCase().replace(/\s*\d{4}\s*$/, '').trim();
+  const existingBaseNames = new Set(existing.map(e => stripYear(e.name)));
+
+  // Also build a set of date+district keys to catch renamed duplicates
+  const existingDateDistrict = new Set(
+    existing
+      .filter(e => e.date && e.location?.district)
+      .map(e => `${new Date(e.date).toISOString().slice(0, 10)}|${e.location.district.toLowerCase()}`)
+  );
+
+  // Filter: event STARTS this week + not already in DB (by name or date+district)
   const toInsert = KERALA_YEARLY_EVENTS.filter(e => {
     const d = new Date(e.date);
     const startsThisWeek = d >= weekStart && d <= weekEnd;
-    const isNew = !existingNames.has(e.name.trim().toLowerCase());
+    const exactNameExists = existingNames.has(e.name.trim().toLowerCase());
+    const baseNameExists  = existingBaseNames.has(stripYear(e.name));
+    const dateDistrictKey = `${d.toISOString().slice(0, 10)}|${(e.location?.district || '').toLowerCase()}`;
+    const dateDistrictExists = existingDateDistrict.has(dateDistrictKey);
+    const isNew = !exactNameExists && !baseNameExists && !dateDistrictExists;
     return startsThisWeek && isNew;
   });
 

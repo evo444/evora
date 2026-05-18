@@ -27,6 +27,16 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 // Socket connects to the same server as the API (no separate VITE_SOCKET_URL needed)
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
+// Resolve image URL — proxy wikimedia to avoid CORS/hotlink blocking
+function proxyImg(raw) {
+  if (!raw) return null;
+  if (raw.includes('wikimedia.org') || raw.includes('wikipedia.org')) {
+    return `${API_URL}/api/events/proxy-image?url=${encodeURIComponent(raw)}`;
+  }
+  if (raw.startsWith('http')) return raw;
+  return `${API_URL}${raw}`;
+}
+
 function formatDate(d) {
   if (!d) return '';
   return new Date(d).toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
@@ -442,9 +452,7 @@ export default function EventDetailPage() {
   if (!event) return null;
 
   const images = event.images?.length > 0 ? event.images : [];
-  const mainImage = images[selectedImg]
-    ? (images[selectedImg].startsWith('http') ? images[selectedImg] : `${API_URL}${images[selectedImg]}`)
-    : null;
+  const mainImage = images[selectedImg] ? proxyImg(images[selectedImg]) : null;
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 py-8">
@@ -501,7 +509,7 @@ export default function EventDetailPage() {
             {images.length > 1 && (
               <div className="flex gap-2 p-3 overflow-x-auto">
                 {images.map((img, i) => {
-                  const url = img.startsWith('http') ? img : `${API_URL}${img}`;
+                  const url = proxyImg(img);
                   return (
                     <button key={i} onClick={() => setSelectedImg(i)}
                       className={`w-16 h-12 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${i === selectedImg ? 'border-primary-500' : 'border-transparent opacity-60 hover:opacity-100'}`}>

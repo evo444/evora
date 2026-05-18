@@ -112,15 +112,22 @@ function GlassSelect({ icon, value, onChange, options, placeholder, className = 
 }
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// Build a safe image URL — handles all storage formats:
-// 1. Full URL: http://...  → use as-is
-// 2. /uploads/file.jpg    → prepend API_BASE only  (most common — backend stores this format)
-// 3. bare filename.jpg    → prepend API_BASE/uploads/
-const imgUrl = (path) => {
-  if (!path) return '';
-  if (path.startsWith('http')) return path;
-  if (path.startsWith('/')) return `${API_BASE}${path}`;
-  return `${API_BASE}/uploads/${path}`;
+// Build a safe image URL — handles all storage formats AND proxies wikimedia images
+// 1. Wikimedia/Wikipedia → proxy through backend to avoid CORS/hotlink blocking
+// 2. Full URL: http://...  → use as-is
+// 3. /uploads/file.jpg    → prepend API_BASE
+// 4. bare filename.jpg    → prepend API_BASE/uploads/
+const imgUrl = (rawPath) => {
+  if (!rawPath) return '';
+  if (
+    rawPath.includes('wikimedia.org') ||
+    rawPath.includes('wikipedia.org')
+  ) {
+    return `${API_BASE}/api/events/proxy-image?url=${encodeURIComponent(rawPath)}`;
+  }
+  if (rawPath.startsWith('http')) return rawPath;
+  if (rawPath.startsWith('/')) return `${API_BASE}${rawPath}`;
+  return `${API_BASE}/uploads/${rawPath}`;
 };
 
 /* ── Draggable Marker helper ── */
@@ -448,21 +455,44 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, onDeleteDup
             </div>
 
             {/* ── Sticky Action Bar ── */}
-            {sub.status === 'pending' && (
-              <div className="flex-shrink-0 px-4 py-3 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
-                <div className="flex gap-3">
-                  <button onClick={() => onApprove(sub._id)}
-                    className="flex-1 btn-primary py-3 text-sm font-bold flex items-center justify-center gap-2">
-                    ✅ Approve
-                  </button>
-                  <button onClick={() => onReject(sub._id)}
-                    className="flex-1 py-3 rounded-xl text-sm font-bold bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all">
-                    🗑️ Reject
+            <div className="flex-shrink-0 px-4 py-3 border-t border-gray-100 dark:border-gray-800 bg-white dark:bg-gray-900">
+              {sub.status === 'pending' ? (
+                <>
+                  <div className="flex gap-2">
+                    <button onClick={() => onApprove(sub._id)}
+                      className="flex-1 btn-primary py-3 text-sm font-bold flex items-center justify-center gap-2">
+                      ✅ Approve
+                    </button>
+                    <Link
+                      to={`/admin/events/${sub._id}/edit`}
+                      onClick={onClose}
+                      className="flex-shrink-0 px-4 py-3 rounded-xl text-sm font-bold bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-all flex items-center gap-1.5"
+                    >
+                      ✏️ Edit
+                    </Link>
+                    <button onClick={() => onReject(sub._id)}
+                      className="flex-shrink-0 px-4 py-3 rounded-xl text-sm font-bold bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/40 transition-all">
+                      🗑️
+                    </button>
+                  </div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-1.5">Edit before approving · 🗑️ permanently deletes</p>
+                </>
+              ) : (
+                <div className="flex gap-2">
+                  <Link
+                    to={`/admin/events/${sub._id}/edit`}
+                    onClick={onClose}
+                    className="flex-1 py-3 rounded-xl text-sm font-bold bg-violet-50 dark:bg-violet-900/20 text-violet-600 dark:text-violet-400 hover:bg-violet-100 dark:hover:bg-violet-900/40 transition-all flex items-center justify-center gap-2"
+                  >
+                    ✏️ Edit Event
+                  </Link>
+                  <button onClick={onClose}
+                    className="flex-1 py-3 rounded-xl text-sm font-bold bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all">
+                    Close
                   </button>
                 </div>
-                <p className="text-xs text-gray-400 dark:text-gray-500 text-center mt-1.5">Rejection permanently deletes this submission.</p>
-              </div>
-            )}
+              )}
+            </div>
           </motion.div>
         </motion.div>
       </AnimatePresence>
