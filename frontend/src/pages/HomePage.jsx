@@ -643,9 +643,7 @@ export default function HomePage() {
                   const rawImg = event.images?.[0]
                     ? (event.images[0].startsWith('http') ? event.images[0] : `${API_URL}${event.images[0]}`)
                     : null;
-                  const img = rawImg && (rawImg.includes('wikimedia.org') || rawImg.includes('wikipedia.org'))
-                    ? `https://images.weserv.nl/?url=${encodeURIComponent(rawImg.replace(/^https?:\/\//, ''))}&output=jpg&q=80`
-                    : rawImg;
+                  const img = rawImg;
                   return (
                     <Link
                       key={`${event._id}-${idx}`}

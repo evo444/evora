@@ -120,15 +120,7 @@ const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 // 4. bare filename.jpg    → prepend API_BASE/uploads/
 const imgUrl = (rawPath) => {
   if (!rawPath) return '';
-  if (
-    rawPath.includes('wikimedia.org') ||
-    rawPath.includes('wikipedia.org')
-  ) {
-    // Use images.weserv.nl — a free CDN image proxy that handles CORS + Wikimedia hotlink protection
-    // Strip https:// for weserv (it prefixes its own protocol)
-    const clean = rawPath.replace(/^https?:\/\//, '');
-    return `https://images.weserv.nl/?url=${encodeURIComponent(clean)}&output=jpg&q=80`;
-  }
+  // Return Wikimedia URLs as-is — img tags use referrerPolicy="no-referrer" to bypass hotlink check
   if (rawPath.startsWith('http')) return rawPath;
   if (rawPath.startsWith('/')) return `${API_BASE}${rawPath}`;
   return `${API_BASE}/uploads/${rawPath}`;
@@ -233,6 +225,7 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, onDeleteDup
               {images.length > 0 ? (
                 <>
                   <img src={imgUrl(images[imgIndex])} alt=""
+                    referrerPolicy="no-referrer"
                     className="w-full object-cover cursor-zoom-in"
                     style={{ height: 'clamp(160px, 28vw, 260px)' }}
                     onClick={() => setLightbox(imgUrl(images[imgIndex]))} />
@@ -242,7 +235,7 @@ function SubmissionPreviewModal({ sub, onClose, onApprove, onReject, onDeleteDup
                       {images.map((img, i) => (
                         <button key={i} onClick={() => setImgIndex(i)}
                           className={`flex-shrink-0 w-12 h-9 rounded-lg overflow-hidden border-2 transition-all ${i === imgIndex ? 'border-white' : 'border-transparent opacity-60 hover:opacity-90'}`}>
-                          <img src={imgUrl(img)} alt="" className="w-full h-full object-cover" />
+                          <img src={imgUrl(img)} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                         </button>
                       ))}
                     </div>
@@ -1028,6 +1021,8 @@ export default function AdminDashboard() {
                           <img
                             src={imgUrl(sub.images[0])}
                             alt=""
+                            referrerPolicy="no-referrer"
+                            crossOrigin="anonymous"
                             className="absolute inset-0 w-full h-full object-cover"
                             onError={e => { e.currentTarget.style.display='none'; e.currentTarget.nextSibling && (e.currentTarget.nextSibling.style.display='flex'); }}
                           />

@@ -27,13 +27,9 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 // Socket connects to the same server as the API (no separate VITE_SOCKET_URL needed)
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// Resolve image URL — proxy wikimedia via weserv.nl CDN (no backend needed)
+// Resolve image URL — Wikimedia served directly; img tags use referrerPolicy="no-referrer"
 function proxyImg(raw) {
   if (!raw) return null;
-  if (raw.includes('wikimedia.org') || raw.includes('wikipedia.org')) {
-    const clean = raw.replace(/^https?:\/\//, '');
-    return `https://images.weserv.nl/?url=${encodeURIComponent(clean)}&output=jpg&q=80`;
-  }
   if (raw.startsWith('http')) return raw;
   return `${API_URL}${raw}`;
 }
@@ -491,6 +487,7 @@ export default function EventDetailPage() {
                   src={mainImage}
                   alt={event.name}
                   loading="eager"
+                  referrerPolicy="no-referrer"
                   className="w-full h-full object-cover transition-opacity duration-500"
                   style={{ opacity: 0 }}
                   onLoad={e => { e.currentTarget.style.opacity = '1'; }}
@@ -514,7 +511,7 @@ export default function EventDetailPage() {
                   return (
                     <button key={i} onClick={() => setSelectedImg(i)}
                       className={`w-16 h-12 rounded-lg overflow-hidden flex-shrink-0 border-2 transition-all ${i === selectedImg ? 'border-primary-500' : 'border-transparent opacity-60 hover:opacity-100'}`}>
-                      <img src={url} alt="" className="w-full h-full object-cover" />
+                      <img src={url} alt="" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
                     </button>
                   );
                 })}
