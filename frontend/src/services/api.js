@@ -32,4 +32,5 @@ export const adminService = {
   deleteUser: (id) => API.delete(`/api/admin/users/${id}`).then(r => r.data),
   getAnalytics: () => API.get('/api/admin/analytics').then(r => r.data),
   toggleTrending: (id) => API.put(`/api/admin/events/${id}/trending`).then(r => r.data),
+  deleteEvent: (id) => API.delete(`/api/events/${id}`).then(r => r.data),
 };
