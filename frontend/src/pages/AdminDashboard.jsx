@@ -742,6 +742,7 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [previewSub, setPreviewSub] = useState(null);
   const [dismissedDuplicates, setDismissedDuplicates] = useState([]);
+  const [confirmDelete, setConfirmDelete] = useState(null); // { id, name } of event pending deletion
 
   if (!isAdmin()) return (
     <div className="min-h-screen flex items-center justify-center">
@@ -792,9 +793,15 @@ export default function AdminDashboard() {
     catch { toast.error('Failed'); }
   };
   const deleteEvent = async (id) => {
-    if (!window.confirm('Delete this event?')) return;
-    try { await eventService.delete(id); toast.success('Event deleted'); fetchData(); }
-    catch { toast.error('Failed'); }
+    try {
+      await eventService.delete(id);
+      toast.success('Event deleted permanently');
+      setConfirmDelete(null);
+      fetchData();
+    } catch (err) {
+      console.error('Delete event error:', err);
+      toast.error(err?.response?.data?.message || 'Failed to delete event');
+    }
   };
   const toggleTrending = async (id) => {
     try { await adminService.toggleTrending(id); fetchData(); }
@@ -864,6 +871,39 @@ export default function AdminDashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-8">
+
+      {/* ── Delete Confirmation Modal ── */}
+      {confirmDelete && ReactDOM.createPortal(
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4" style={{ background: 'rgba(0,0,0,0.5)' }}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 max-w-sm w-full">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center flex-shrink-0">
+                <Trash2 className="w-5 h-5 text-red-500" strokeWidth={2} />
+              </div>
+              <div>
+                <p className="font-bold text-gray-900 dark:text-white text-sm">Delete Event?</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{confirmDelete.name}</p>
+              </div>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-5">This will permanently remove the event. This action cannot be undone.</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => deleteEvent(confirmDelete.id)}
+                className="flex-1 py-2.5 rounded-xl bg-red-500 hover:bg-red-600 text-white text-sm font-bold transition-colors"
+              >
+                Delete permanently
+              </button>
+              <button
+                onClick={() => setConfirmDelete(null)}
+                className="flex-1 py-2.5 rounded-xl bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-semibold hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* ── Submission Preview Modal ── */}
       {previewSub && ReactDOM.createPortal(
@@ -1111,7 +1151,11 @@ export default function AdminDashboard() {
                     <Link to={`/admin/events/${e._id}/edit`} className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
                       <Pencil className="w-4 h-4 text-gray-600 dark:text-gray-300" strokeWidth={2} />
                     </Link>
-                    <button onClick={() => deleteEvent(e._id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                    <button
+                      onClick={() => setConfirmDelete({ id: e._id, name: e.name })}
+                      className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                      title="Delete event"
+                    >
                       <Trash2 className="w-4 h-4 text-red-500" strokeWidth={2} />
                     </button>
                   </div>
