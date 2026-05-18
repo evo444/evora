@@ -644,7 +644,7 @@ export default function HomePage() {
                     ? (event.images[0].startsWith('http') ? event.images[0] : `${API_URL}${event.images[0]}`)
                     : null;
                   const img = rawImg && (rawImg.includes('wikimedia.org') || rawImg.includes('wikipedia.org'))
-                    ? `${API_URL}/api/events/proxy-image?url=${encodeURIComponent(rawImg)}`
+                    ? `https://images.weserv.nl/?url=${encodeURIComponent(rawImg.replace(/^https?:\/\//, ''))}&output=jpg&q=80`
                     : rawImg;
                   return (
                     <Link

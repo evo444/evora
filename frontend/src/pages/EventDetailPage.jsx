@@ -27,11 +27,12 @@ const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 // Socket connects to the same server as the API (no separate VITE_SOCKET_URL needed)
 const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// Resolve image URL — proxy wikimedia to avoid CORS/hotlink blocking
+// Resolve image URL — proxy wikimedia via weserv.nl CDN (no backend needed)
 function proxyImg(raw) {
   if (!raw) return null;
   if (raw.includes('wikimedia.org') || raw.includes('wikipedia.org')) {
-    return `${API_URL}/api/events/proxy-image?url=${encodeURIComponent(raw)}`;
+    const clean = raw.replace(/^https?:\/\//, '');
+    return `https://images.weserv.nl/?url=${encodeURIComponent(clean)}&output=jpg&q=80`;
   }
   if (raw.startsWith('http')) return raw;
   return `${API_URL}${raw}`;

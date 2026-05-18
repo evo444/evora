@@ -124,7 +124,10 @@ const imgUrl = (rawPath) => {
     rawPath.includes('wikimedia.org') ||
     rawPath.includes('wikipedia.org')
   ) {
-    return `${API_BASE}/api/events/proxy-image?url=${encodeURIComponent(rawPath)}`;
+    // Use images.weserv.nl — a free CDN image proxy that handles CORS + Wikimedia hotlink protection
+    // Strip https:// for weserv (it prefixes its own protocol)
+    const clean = rawPath.replace(/^https?:\/\//, '');
+    return `https://images.weserv.nl/?url=${encodeURIComponent(clean)}&output=jpg&q=80`;
   }
   if (rawPath.startsWith('http')) return rawPath;
   if (rawPath.startsWith('/')) return `${API_BASE}${rawPath}`;

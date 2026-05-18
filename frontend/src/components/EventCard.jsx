@@ -8,11 +8,12 @@ import { useAuth } from '../contexts/AuthContext';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-// Resolve any image path to a full URL — proxy wikimedia to avoid hotlink/CORS blocks
+// Resolve any image path to a full URL — proxy wikimedia via weserv.nl CDN
 function resolveImage(raw) {
   if (!raw) return null;
   if (raw.includes('wikimedia.org') || raw.includes('wikipedia.org')) {
-    return `${API_URL}/api/events/proxy-image?url=${encodeURIComponent(raw)}`;
+    const clean = raw.replace(/^https?:\/\//, '');
+    return `https://images.weserv.nl/?url=${encodeURIComponent(clean)}&output=jpg&q=80`;
   }
   if (raw.startsWith('http')) return raw;
   if (raw.startsWith('/')) return `${API_URL}${raw}`;
