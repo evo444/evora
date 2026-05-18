@@ -1,9 +1,10 @@
-// v3 — OPTIONS: DARKMOD / SUGGESTIONS / REPORT — no icons — built 2026-05-11
+// v4 — lucide-react icons replacing emojis
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useTheme } from '../contexts/ThemeContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Crown, User } from 'lucide-react';
 import FeedbackModal from './FeedbackModal';
 
 const dropdownSpring = { type: 'spring', stiffness: 380, damping: 28 };
@@ -164,7 +165,11 @@ export default function Navbar() {
                     <motion.div {...dropIn} className="absolute right-0 mt-2 w-48 card py-1 shadow-xl z-50">
                       <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-800">
                         <p className="text-sm font-semibold text-gray-900 dark:text-white">{user.name}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{user.role === 'admin' ? '👑 Admin' : '👤 User'}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                          {user.role === 'admin'
+                            ? <><Crown className="w-3 h-3 text-gray-900 dark:text-white" strokeWidth={2} /> Admin</>
+                            : <><User className="w-3 h-3 text-gray-900 dark:text-white" strokeWidth={2} /> User</>}
+                        </p>
                       </div>
                       {isAdmin() && <Link to="/admin" onClick={() => setProfileOpen(false)} className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800">Dashboard</Link>}
                       <button onClick={handleLogout} className="w-full text-left px-4 py-2 text-sm text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10">Sign Out</button>

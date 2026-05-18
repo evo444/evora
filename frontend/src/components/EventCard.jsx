@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import { Calendar, MapPin, Flame, Star, Pencil, Trash2, Image as ImageIcon } from 'lucide-react';
 import CrowdBadge from './CrowdBadge';
 import { StarDisplay } from './StarRating';
 import { useAuth } from '../contexts/AuthContext';
@@ -13,9 +14,9 @@ function resolveImage(raw) {
   if (raw.includes('wikimedia.org') || raw.includes('wikipedia.org')) {
     return `${API_URL}/api/events/proxy-image?url=${encodeURIComponent(raw)}`;
   }
-  if (raw.startsWith('http')) return raw;          // already full URL (Wikimedia, etc.)
-  if (raw.startsWith('/')) return `${API_URL}${raw}`; // /uploads/file.jpg
-  return `${API_URL}/uploads/${raw}`;               // bare filename
+  if (raw.startsWith('http')) return raw;
+  if (raw.startsWith('/')) return `${API_URL}${raw}`;
+  return `${API_URL}/uploads/${raw}`;
 }
 
 // Returns ms remaining until targetDate, or null if already passed
@@ -28,7 +29,7 @@ function useIsLive(startDate, endDate) {
   };
   const [live, setLive] = useState(check);
   useEffect(() => {
-    const id = setInterval(() => setLive(check()), 10000); // re-check every 10s
+    const id = setInterval(() => setLive(check()), 10000);
     return () => clearInterval(id);
   }, [startDate, endDate]);
   return live;
@@ -51,15 +52,8 @@ function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
 }
 
-function formatDateFull(dateStr) {
-  if (!dateStr) return '';
-  return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
-}
-
-// Shared spring config — feels snappy but natural
 const spring = { type: 'spring', stiffness: 340, damping: 26 };
 
-// Card entrance — staggered, translates only on Y + opacity (GPU composited)
 const cardVariants = {
   hidden: { opacity: 0, y: 28 },
   show:   { opacity: 1, y: 0,  transition: { ...spring } },
@@ -71,21 +65,20 @@ export default function EventCard({ event, index = 0, onDelete, onToggleTrending
   const [imgError, setImgError] = useState(false);
   const imageUrl = resolveImage(event.images?.[0]);
 
-  // Determine the "added by" display name
   const addedByName = event.addedBy === 'AI'
     ? 'AI'
     : event.submittedBy?.name
       ? event.submittedBy.name
       : event.createdBy?.name
         ? event.createdBy.name
-        : 'Admin'; // fallback: admin-created events
+        : 'Admin';
 
   return (
     <motion.div
       variants={cardVariants}
       initial="hidden"
       animate="show"
-      transition={{ delay: Math.min(index * 0.055, 0.4) }} // cap max delay at 400 ms
+      transition={{ delay: Math.min(index * 0.055, 0.4) }}
       whileHover={{ y: -6, transition: { ...spring, stiffness: 400 } }}
       style={{ willChange: 'transform, opacity' }}
       className="card overflow-hidden group flex flex-col"
@@ -107,7 +100,8 @@ export default function EventCard({ event, index = 0, onDelete, onToggleTrending
           />
         ) : (
           <div className="w-full h-full flex items-center justify-center">
-            <span className="text-5xl opacity-30">🎉</span>
+            {/* Image placeholder — black icon, no emoji */}
+            <ImageIcon className="w-12 h-12 text-gray-900 dark:text-white opacity-20" strokeWidth={1.2} />
           </div>
         )}
 
@@ -121,11 +115,12 @@ export default function EventCard({ event, index = 0, onDelete, onToggleTrending
           </span>
           {event.trending && (
             <motion.span
-              className="badge bg-red-500 text-white"
+              className="badge bg-red-500 text-white flex items-center gap-1"
               animate={{ scale: [1, 1.08, 1] }}
               transition={{ repeat: Infinity, duration: 1.8, ease: 'easeInOut' }}
             >
-              🔥 Trending
+              <Flame className="w-3 h-3" strokeWidth={2} />
+              Trending
             </motion.span>
           )}
         </div>
@@ -138,16 +133,16 @@ export default function EventCard({ event, index = 0, onDelete, onToggleTrending
             className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
           >
             <button onClick={() => onToggleTrending?.(event)} title="Toggle Trending"
-              className="p-1.5 bg-white/90 dark:bg-gray-900/90 rounded-lg text-xs hover:bg-white dark:hover:bg-gray-800 transition-colors">
-              {event.trending ? '⭐' : '☆'}
+              className="p-1.5 bg-white/90 dark:bg-gray-900/90 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-colors">
+              <Star className={`w-3.5 h-3.5 ${event.trending ? 'fill-amber-400 text-amber-400' : 'text-gray-600 dark:text-gray-300'}`} strokeWidth={2} />
             </button>
             <Link to={`/admin/events/${event._id}/edit`}
-              className="p-1.5 bg-white/90 dark:bg-gray-900/90 rounded-lg text-xs hover:bg-white dark:hover:bg-gray-800 transition-colors">
-              ✏️
+              className="p-1.5 bg-white/90 dark:bg-gray-900/90 rounded-lg hover:bg-white dark:hover:bg-gray-800 transition-colors">
+              <Pencil className="w-3.5 h-3.5 text-gray-600 dark:text-gray-300" strokeWidth={2} />
             </Link>
             <button onClick={() => onDelete?.(event._id)} title="Delete"
-              className="p-1.5 bg-white/90 dark:bg-gray-900/90 rounded-lg text-xs hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-              🗑️
+              className="p-1.5 bg-white/90 dark:bg-gray-900/90 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+              <Trash2 className="w-3.5 h-3.5 text-red-500" strokeWidth={2} />
             </button>
           </motion.div>
         )}
@@ -159,7 +154,7 @@ export default function EventCard({ event, index = 0, onDelete, onToggleTrending
           {event.name}
         </h3>
 
-        {/* Description — full text, no truncation */}
+        {/* Description */}
         <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 leading-relaxed">
           {event.description || event.shortDescription}
         </p>
@@ -181,7 +176,7 @@ export default function EventCard({ event, index = 0, onDelete, onToggleTrending
         <div className="flex items-center flex-wrap gap-x-1 gap-y-0.5 text-xs text-gray-500 dark:text-gray-400 mb-3">
           {/* Date range */}
           <span className="flex items-center gap-1 flex-shrink-0">
-            <span>📅</span>
+            <Calendar className="w-3 h-3 text-gray-900 dark:text-white" strokeWidth={2} />
             <span>
               {formatDate(event.date)}
               {event.endDate && (
@@ -190,7 +185,6 @@ export default function EventCard({ event, index = 0, onDelete, onToggleTrending
             </span>
           </span>
 
-          {/* Separator */}
           {(event.location?.district || event.location?.address) && (
             <span className="text-gray-300 dark:text-gray-600 flex-shrink-0">·</span>
           )}
@@ -198,12 +192,11 @@ export default function EventCard({ event, index = 0, onDelete, onToggleTrending
           {/* Location */}
           {(event.location?.district || event.location?.address) && (
             <span className="flex items-center gap-1 flex-shrink-0">
-              <span>📍</span>
+              <MapPin className="w-3 h-3 text-gray-900 dark:text-white" strokeWidth={2} />
               <span className="truncate max-w-[80px] sm:max-w-[100px]">{event.location?.district || event.location?.address}</span>
             </span>
           )}
 
-          {/* Separator */}
           {addedByName && (
             <span className="text-gray-300 dark:text-gray-600 flex-shrink-0">·</span>
           )}

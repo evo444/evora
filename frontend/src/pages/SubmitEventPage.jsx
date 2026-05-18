@@ -222,6 +222,7 @@ export default function SubmitEventPage() {
   const [form, setForm] = useState({
     name: '', description: '', category: '',
     crowd: '', attendees: '', tags: '', district: '',
+    startDate: '', endDate: '',
     organizerName: '', organizerPhone: '', organizerEmail: '', website: '',
   });
 
@@ -305,7 +306,7 @@ export default function SubmitEventPage() {
   };
 
   // Step validation — no date required (admin sets dates)
-  const canProceed0 = form.name && form.description && form.category && form.crowd;
+  const canProceed0 = form.name && form.description && form.category && form.crowd && form.startDate && form.endDate;
   const canProceed1 = location?.lat && form.district;
   const canProceed2 = images.length > 0 || wikiImages.length > 0;
 
@@ -316,13 +317,12 @@ export default function SubmitEventPage() {
     if (!disclaimerAccepted) { toast.error('Please accept the disclaimer to continue'); return; }
     setLoading(true);
     try {
-      const now = new Date().toISOString();
       const fd = new FormData();
       fd.append('name', form.name);
       fd.append('description', form.description);
       fd.append('category', form.category);
-      fd.append('date', now);
-      fd.append('endDate', now);
+      fd.append('date', new Date(form.startDate).toISOString());
+      fd.append('endDate', new Date(form.endDate).toISOString());
       fd.append('crowd', form.crowd);
       if (form.attendees) fd.append('attendees', form.attendees);
       fd.append('location', JSON.stringify({
@@ -376,7 +376,7 @@ export default function SubmitEventPage() {
         </div>
         <div className="flex gap-3 justify-center">
           <button onClick={() => { setSubmitted(false); setStep(0); }} className="btn-secondary px-5 py-2 text-sm">Submit Another</button>
-          <Link to="/" className="btn-primary px-5 py-2 text-sm">Browse Events 🌴</Link>
+          <Link to="/" className="btn-primary px-5 py-2 text-sm">Browse Events</Link>
         </div>
       </motion.div>
     </div>
@@ -390,7 +390,9 @@ export default function SubmitEventPage() {
           ← Back to Events
         </Link>
         <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-accent to-green-700 flex items-center justify-center text-2xl shadow-green">🎪</div>
+          <div className="w-14 h-14 rounded-2xl bg-gray-900 dark:bg-white flex items-center justify-center shadow-sm">
+            <CalendarCheck className="w-7 h-7 text-white dark:text-gray-900" strokeWidth={1.8} />
+          </div>
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Submit an Event</h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">Admin reviews & approves before it goes live</p>
@@ -406,7 +408,7 @@ export default function SubmitEventPage() {
         {step === 0 && (
           <motion.div key="s0" initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -30 }} className="card p-6 space-y-5">
             <div className="flex items-center gap-2 mb-1">
-              <span className="text-xl">📝</span>
+              <FileText className="w-5 h-5 text-gray-900 dark:text-white" strokeWidth={2} />
               <h2 className="font-bold text-gray-900 dark:text-white">Basic Information</h2>
             </div>
 
@@ -416,9 +418,9 @@ export default function SubmitEventPage() {
                 <input className="input w-full pr-10" placeholder="e.g. Thrissur Pooram 2025" value={form.name} onChange={e => set('name', e.target.value)} required />
                 <button type="button" onClick={handleAiAutoFill} disabled={aiLoading || !form.name.trim()}
                   title="AI Auto-fill from Wikipedia & Maps"
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-violet-500 hover:text-violet-600 dark:text-violet-400 dark:hover:text-violet-300 disabled:opacity-30 disabled:cursor-not-allowed hover:scale-110 transition-transform">
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-900 dark:text-white hover:text-black dark:hover:text-gray-100 disabled:opacity-30 disabled:cursor-not-allowed hover:scale-110 transition-transform">
                   {aiLoading
-                    ? <span className="inline-block w-5 h-5 border-2 border-violet-500 border-t-transparent rounded-full animate-spin" />
+                    ? <span className="inline-block w-5 h-5 border-2 border-gray-900 dark:border-white border-t-transparent rounded-full animate-spin" />
                     : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M16 7.5 A7 7 0 1 0 15.4 15.5" />
                         <line x1="15.4" y1="15.5" x2="21" y2="21" />
@@ -432,8 +434,10 @@ export default function SubmitEventPage() {
             <AnimatePresence>
               {aiLoading && (
                 <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }}
-                  className="flex items-center gap-3 p-3 rounded-xl bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-700/40 text-sm text-violet-700 dark:text-violet-300">
-                  <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} className="text-lg">🔍</motion.span>
+                  className="flex items-center gap-3 p-3 rounded-xl bg-gray-50 dark:bg-gray-800/60 border border-gray-200 dark:border-gray-700 text-sm text-gray-700 dark:text-gray-300">
+                  <motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }}>
+                    <Search className="w-4 h-4 text-gray-900 dark:text-white" strokeWidth={2} />
+                  </motion.span>
                   <span>Searching Wikipedia & OpenStreetMap for "<strong>{form.name}</strong>"…</span>
                 </motion.div>
               )}
@@ -447,10 +451,11 @@ export default function SubmitEventPage() {
               <p className="text-xs text-gray-400 mt-1">{form.description.length}/2000</p>
             </div>
 
+            {/* Category + Crowd */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="form-label">Category <span className="text-red-400">*</span></label>
-                {form.category && <span className="ml-2 text-xs text-violet-500">✨ AI selected</span>}
+                {form.category && <span className="ml-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1"><CheckCircle className="w-3 h-3 text-green-500" strokeWidth={2.5} /> AI selected</span>}
                 <GlassSelect options={CATEGORY_OPTIONS} value={form.category} onChange={v => set('category', v)} />
               </div>
               <div>
@@ -459,10 +464,66 @@ export default function SubmitEventPage() {
               </div>
             </div>
 
-            <div className="p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-700/40 text-xs text-amber-700 dark:text-amber-300">
-              📅 <strong>Note:</strong> Start & End dates will be set by the admin after review. No need to enter them now.
+            {/* Start & End Date — liquid glass style */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label className="form-label">Start Date <span className="text-red-400">*</span></label>
+                <div className="relative">
+                  <input
+                    id="startDate"
+                    type="date"
+                    className="w-full rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-all duration-200 cursor-pointer"
+                    style={{
+                      background: 'rgba(255,255,255,0.55)',
+                      backdropFilter: 'blur(16px)',
+                      WebkitBackdropFilter: 'blur(16px)',
+                      border: form.startDate ? '1.5px solid rgba(34,197,94,0.6)' : '1.5px solid rgba(156,163,175,0.4)',
+                      boxShadow: form.startDate
+                        ? '0 4px 20px rgba(34,197,94,0.12), inset 0 1px 0 rgba(255,255,255,0.8)'
+                        : '0 2px 12px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)',
+                      color: 'inherit',
+                    }}
+                    value={form.startDate}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={e => {
+                      set('startDate', e.target.value);
+                      if (form.endDate && e.target.value > form.endDate) set('endDate', '');
+                    }}
+                  />
+                  {form.startDate && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 text-sm pointer-events-none">✓</span>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label className="form-label">End Date <span className="text-red-400">*</span></label>
+                <div className="relative">
+                  <input
+                    id="endDate"
+                    type="date"
+                    className="w-full rounded-2xl px-4 py-3 text-sm font-medium outline-none transition-all duration-200 cursor-pointer"
+                    style={{
+                      background: 'rgba(255,255,255,0.55)',
+                      backdropFilter: 'blur(16px)',
+                      WebkitBackdropFilter: 'blur(16px)',
+                      border: form.endDate ? '1.5px solid rgba(34,197,94,0.6)' : '1.5px solid rgba(156,163,175,0.4)',
+                      boxShadow: form.endDate
+                        ? '0 4px 20px rgba(34,197,94,0.12), inset 0 1px 0 rgba(255,255,255,0.8)'
+                        : '0 2px 12px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,0.8)',
+                      color: 'inherit',
+                    }}
+                    value={form.endDate}
+                    min={form.startDate || new Date().toISOString().split('T')[0]}
+                    onChange={e => set('endDate', e.target.value)}
+                  />
+                  {form.endDate && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-green-500 text-sm pointer-events-none">✓</span>
+                  )}
+                </div>
+              </div>
             </div>
 
+            {/* Attendees + Tags */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="form-label">Expected Attendees</label>
@@ -482,6 +543,8 @@ export default function SubmitEventPage() {
             </div>
           </motion.div>
         )}
+
+        
 
         {/* ── STEP 1: Location ── */}
         {step === 1 && (
@@ -571,7 +634,7 @@ export default function SubmitEventPage() {
             </div>
 
             <div className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl space-y-3">
-              <label className="form-label mb-0">👤 Organizer Info <span className="text-xs text-gray-400">(optional but recommended)</span></label>
+              <label className="form-label mb-0 flex items-center gap-1.5"><User className="w-3.5 h-3.5 text-gray-900 dark:text-white" strokeWidth={2} /> Organizer Info <span className="text-xs text-gray-400">(optional but recommended)</span></label>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="form-label">Organizer Name</label>
@@ -621,7 +684,7 @@ export default function SubmitEventPage() {
                   </div>
                 </div>
                 <div className="flex gap-4 flex-wrap text-xs text-gray-600 dark:text-gray-300">
-                  <span>📅 {form.date ? new Date(form.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—'}</span>
+                  <span>📅 {form.startDate ? new Date(form.startDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'} → {form.endDate ? new Date(form.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '—'}</span>
                   <span>📍 {location?.address?.slice(0, 60)}...</span>
                   {form.district && <span>🗺 {form.district}</span>}
                   <span>📸 {images.length} photo{images.length !== 1 ? 's' : ''}</span>

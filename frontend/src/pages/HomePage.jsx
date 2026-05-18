@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, useAnimation } from 'framer-motion';
 import { Link, useSearchParams } from 'react-router-dom';
+import { MapPin, Users, Star, Flame, Image as ImageIcon, Search } from 'lucide-react';
 import EventCard from '../components/EventCard';
 import SkeletonCard from '../components/SkeletonCard';
 import { eventService, adminService } from '../services/api';
@@ -159,10 +160,10 @@ function Countdown({ date, light = false }) {
   const t = useCountdown(date);
 
   if (!t) return (
-    <span className="inline-flex items-center gap-1.5 text-[10px] font-black text-green-500 dark:text-green-400 uppercase tracking-wider">
-      <span className="relative flex h-1.5 w-1.5">
+    <span className="inline-flex items-center gap-1 text-[9px] font-bold text-green-500 dark:text-green-400 uppercase tracking-wider">
+      <span className="relative flex h-1 w-1">
         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-500 opacity-75" />
-        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-green-500" />
+        <span className="relative inline-flex rounded-full h-1 w-1 bg-green-500" />
       </span>
       Live Now
     </span>
@@ -405,7 +406,10 @@ export default function HomePage() {
       <div className="hero-section py-4 sm:py-10">
         <div className="max-w-4xl mx-auto text-center px-4">
           <motion.div initial={{opacity:0,y:-12}} animate={{opacity:1,y:0}} transition={{duration:0.45}}>
-            <span className="text-gray-400 text-[10px] sm:text-xs font-semibold uppercase tracking-widest mb-1 block">🌍 Discover Kerala</span>
+            <span className="text-gray-400 text-[10px] sm:text-xs font-semibold uppercase tracking-widest mb-1 flex items-center justify-center gap-1">
+              <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><circle cx="12" cy="12" r="10"/><path strokeLinecap="round" strokeLinejoin="round" d="M2 12h20M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z"/></svg>
+              Discover Kerala
+            </span>
             <h1 className="text-xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white leading-tight">
               Every Event in Kerala
             </h1>
@@ -484,7 +488,7 @@ export default function HomePage() {
           <div className="flex gap-1.5 items-center">
             {/* District / Place */}
             <GlassSelect
-              icon="📍"
+              icon={<MapPin className="w-3 h-3 text-gray-900 dark:text-white" strokeWidth={2} />}
               placeholder="All Places"
               value={district}
               onChange={v => { setDistrict(v); setPage(1); }}
@@ -498,7 +502,7 @@ export default function HomePage() {
 
             {/* Crowd */}
             <GlassSelect
-              icon="👥"
+              icon={<Users className="w-3 h-3 text-gray-900 dark:text-white" strokeWidth={2} />}
               placeholder="All Crowds"
               value={crowd}
               onChange={v => { setCrowd(v); setPage(1); }}
@@ -511,7 +515,7 @@ export default function HomePage() {
 
             {/* Rating */}
             <GlassSelect
-              icon="⭐"
+              icon={<Star className="w-3 h-3 text-gray-900 dark:text-white" strokeWidth={2} />}
               placeholder="Any Rating"
               value={minRating}
               onChange={v => { setMinRating(v); setPage(1); }}
@@ -596,7 +600,10 @@ export default function HomePage() {
             </div>
           ) : filteredWeekEvents.length === 0 ? (
             <div className="flex items-center gap-3 p-5 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-dashed border-gray-200 dark:border-gray-800 text-sm text-gray-400">
-              <span className="text-3xl">{category !== 'All' ? '🔍' : '🗓️'}</span>
+              {category !== 'All'
+                ? <Search className="w-7 h-7 text-gray-400" strokeWidth={1.5} />
+                : <svg xmlns="http://www.w3.org/2000/svg" className="w-7 h-7 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              }
               <div>
                 <p className="font-medium text-gray-500 dark:text-gray-400">
                   {category !== 'All' ? `No ${category} events this week` : 'No events this week'}
@@ -639,9 +646,12 @@ export default function HomePage() {
                   : filteredWeekEvents
                 ).map((event, idx) => {
                   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-                  const img = event.images?.[0]
+                  const rawImg = event.images?.[0]
                     ? (event.images[0].startsWith('http') ? event.images[0] : `${API_URL}${event.images[0]}`)
                     : null;
+                  const img = rawImg && (rawImg.includes('wikimedia.org') || rawImg.includes('wikipedia.org'))
+                    ? `${API_URL}/api/events/proxy-image?url=${encodeURIComponent(rawImg)}`
+                    : rawImg;
                   return (
                     <Link
                       key={`${event._id}-${idx}`}
@@ -655,14 +665,18 @@ export default function HomePage() {
                           <img
                             src={img}
                             alt={event.name}
+                            referrerPolicy="no-referrer"
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                             draggable="false"
+                            onError={e => {
+                              e.currentTarget.style.display = 'none';
+                              e.currentTarget.nextSibling && (e.currentTarget.nextSibling.style.display = 'flex');
+                            }}
                           />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <span className="text-4xl opacity-20">🎉</span>
-                          </div>
-                        )}
+                        ) : null}
+                        <div className="w-full h-full flex items-center justify-center" style={{ display: img ? 'none' : 'flex' }}>
+                          <ImageIcon className="w-10 h-10 text-gray-900 dark:text-white opacity-20" strokeWidth={1.2} />
+                        </div>
                         {/* Badges */}
                         <div className="absolute top-2 left-2 right-2 flex items-center justify-between">
                           <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-black/50 backdrop-blur-sm text-white border border-white/10">
@@ -672,30 +686,56 @@ export default function HomePage() {
                             <motion.span
                               animate={{ scale: [1, 1.12, 1] }}
                               transition={{ repeat: Infinity, duration: 1.8 }}
-                              className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500 text-white"
-                            >🔥</motion.span>
+                              className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-red-500 text-white flex items-center gap-0.5"
+                            >
+                              <Flame className="w-2.5 h-2.5" strokeWidth={2} />
+                            </motion.span>
                           )}
                         </div>
                       </div>
 
                       {/* Info panel below */}
                       <div className="p-3">
-                        <p className="font-bold text-sm text-gray-900 dark:text-white line-clamp-2 leading-snug mb-2">
-                          {event.name}
-                        </p>
-                        <div className="flex items-center gap-1 text-gray-400 dark:text-gray-500 text-xs mb-1">
+                        {/* Name + Rating on same line */}
+                        <div className="flex items-center justify-between gap-1 mb-1.5">
+                          <p className="font-bold text-sm text-gray-900 dark:text-white line-clamp-1 leading-snug flex-1 min-w-0">
+                            {event.name}
+                          </p>
+                          <div className="flex items-center gap-0.5 flex-shrink-0">
+                            <span className="text-yellow-400 text-[11px]">★</span>
+                            <span className="text-[11px] font-semibold text-gray-700 dark:text-gray-300">
+                              {event.averageRating?.toFixed(1) || '—'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Date · Place — single line */}
+                        <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400 text-[11px] mb-1 flex-wrap">
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                           </svg>
-                          <span>{new Date(event.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</span>
-                        </div>
-                        <div className="flex items-center gap-1 text-gray-400 dark:text-gray-500 text-xs mb-2.5">
+                          <span className="flex-shrink-0">
+                            {new Date(event.date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                            {event.endDate && (
+                              <> → {new Date(event.endDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}</>
+                            )}
+                          </span>
+                          <span className="text-gray-300 dark:text-gray-600 flex-shrink-0">·</span>
                           <svg xmlns="http://www.w3.org/2000/svg" className="w-3 h-3 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                           </svg>
-                          <span className="truncate">{event.location?.district || event.location?.address}</span>
+                          <span className="truncate">{event.location?.district || event.location?.address || '—'}</span>
                         </div>
+
+                        {/* Short description */}
+                        {(event.shortDescription || event.description) && (
+                          <p className="text-[10px] text-gray-400 dark:text-gray-500 line-clamp-2 leading-relaxed mb-2">
+                            {event.shortDescription || event.description}
+                          </p>
+                        )}
+
+                        {/* Countdown / Live Now */}
                         <div className="pt-2 border-t border-gray-100 dark:border-gray-800">
                           <Countdown date={event.date} />
                         </div>
@@ -749,7 +789,7 @@ export default function HomePage() {
             </div>
           ) : events.length === 0 ? (
             <div className="text-center py-12">
-              <div className="text-5xl mb-3">🔍</div>
+              <div className="flex justify-center mb-3"><Search className="w-12 h-12 text-gray-300 dark:text-gray-600" strokeWidth={1.5} /></div>
               <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No events found</h3>
               <p className="text-gray-400 text-sm mb-4">Try adjusting your search or filters</p>
               <button onClick={resetFilters} className="btn-primary text-sm">Clear Filters</button>
