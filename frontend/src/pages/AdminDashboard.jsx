@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import ReactDOM from 'react-dom';
+import ReactDOM, { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Link } from 'react-router-dom';
 import axios from 'axios';
@@ -12,6 +12,7 @@ import { useTheme } from '../contexts/ThemeContext';
 import { StarDisplay } from '../components/StarRating';
 import CrowdBadge from '../components/CrowdBadge';
 import toast from 'react-hot-toast';
+import { Bot, Calendar, MapPin, Users, Star, Pencil, Trash2, Image as ImageIcon, Trophy, BarChart2, RefreshCw, Clock, CheckCircle, XCircle, Inbox, Crown, User, Flame, Eye } from 'lucide-react';
 
 // Fix Leaflet default marker icon
 delete L.Icon.Default.prototype._getIconUrl;
@@ -634,7 +635,7 @@ function DuplicatesTab() {
           <p className="text-[10px] sm:text-xs text-gray-400 dark:text-gray-500 mt-0.5">AI-powered scan of all events — scored by similarity</p>
         </div>
         <button onClick={fetchDuplicates} className="btn-secondary text-sm flex items-center gap-1.5">
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
+          <RefreshCw className="w-4 h-4" />
           Re-scan
         </button>
       </div>
@@ -717,7 +718,7 @@ function DuplicatesTab() {
             >
               🧠 Edit &amp; Merge
             </button>
-            <div className="w-px bg-gray-100 dark:bg-gray-800" />
+            <div className="w-px bg-gray-100 dark:border-gray-800" />
             <button
               onClick={() => { setDismissed(prev => new Set([...prev, group.id])); toast.success('Dismissed — not a duplicate'); }}
               className="flex-1 py-3 text-sm font-bold text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800/60 transition-all flex items-center justify-center gap-1.5"
@@ -885,7 +886,9 @@ export default function AdminDashboard() {
 
       <div className="flex items-center justify-between mb-4 gap-2">
         <div>
-          <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">👑 Admin</h1>
+          <h1 className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+            <Crown className="w-5 h-5 text-gray-900 dark:text-white" strokeWidth={2} /> Admin
+          </h1>
           <p className="text-gray-500 dark:text-gray-400 text-xs">Manage Zzon</p>
         </div>
         <div className="flex items-center gap-2">
@@ -898,11 +901,8 @@ export default function AdminDashboard() {
                 : 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40'
             }`}>
             {aiFetching ? (
-              <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-              </svg>
-            ) : '🤖'}
+              <div className="animate-spin"><RefreshCw className="w-3.5 h-3.5" /></div>
+            ) : <Bot className="w-3.5 h-3.5" strokeWidth={2} />}
             <span className="hidden sm:inline">{aiFetching ? 'Fetching...' : 'Run AI Fetch'}</span>
           </button>
           {/* New event (hidden on netlify) */}
@@ -1021,15 +1021,24 @@ export default function AdminDashboard() {
                     <div className="flex gap-0">
                       {/* Thumbnail */}
                       {hasImg ? (
-                        <div className="w-28 sm:w-36 flex-shrink-0 relative overflow-hidden">
-                          <img src={imgUrl(sub.images[0])} alt=""
-                            className="w-full h-full object-cover" />
+                        <div className="w-28 sm:w-36 flex-shrink-0 relative overflow-hidden h-28 sm:h-32">
+                          <img
+                            src={imgUrl(sub.images[0])}
+                            alt=""
+                            className="absolute inset-0 w-full h-full object-cover"
+                            onError={e => { e.currentTarget.style.display='none'; e.currentTarget.nextSibling && (e.currentTarget.nextSibling.style.display='flex'); }}
+                          />
+                          <div className="absolute inset-0 items-center justify-center hidden">
+                            <ImageIcon className="w-8 h-8 text-gray-400" strokeWidth={1.5} />
+                          </div>
                           {sub.images.length > 1 && (
                             <span className="absolute bottom-1.5 right-1.5 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded-md font-medium">+{sub.images.length - 1}</span>
                           )}
                         </div>
                       ) : (
-                        <div className="w-20 flex-shrink-0 bg-gray-100 dark:bg-gray-800 flex items-center justify-center text-2xl">🎪</div>
+                        <div className="w-28 sm:w-36 flex-shrink-0 bg-gray-100 dark:bg-gray-800 flex items-center justify-center" style={{ minHeight: 120 }}>
+                          <ImageIcon className="w-8 h-8 text-gray-400" strokeWidth={1.5} />
+                        </div>
                       )}
 
                       {/* Content */}
@@ -1062,10 +1071,9 @@ export default function AdminDashboard() {
                         </div>
                         <button onClick={() => setPreviewSub(sub)}
                           className="w-full py-2 rounded-xl text-sm font-bold bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-100 transition-all flex items-center justify-center gap-2">
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path strokeLinecap="round" strokeLinejoin="round" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                          Preview & Review
+                          <Eye className="w-4 h-4" strokeWidth={2} />
+                          Preview &amp; Review
                         </button>
-
                       </div>
                     </div>
                   </div>
@@ -1100,11 +1108,15 @@ export default function AdminDashboard() {
                   {/* Actions */}
                   <div className="flex items-center gap-1 flex-shrink-0">
                     <button onClick={() => toggleTrending(e._id)} title={e.trending ? 'Remove trending' : 'Set trending'}
-                      className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 text-base transition-colors">
-                      {e.trending ? '⭐' : '☆'}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                      <Flame className={`w-4 h-4 ${e.trending ? 'fill-red-500 text-red-500' : 'text-gray-400'}`} strokeWidth={e.trending ? 0 : 2} />
                     </button>
-                    <Link to={`/admin/events/${e._id}/edit`} className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-base transition-colors">✏️</Link>
-                    <button onClick={() => deleteEvent(e._id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-base transition-colors">🗑️</button>
+                    <Link to={`/admin/events/${e._id}/edit`} className="p-1.5 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors">
+                      <Pencil className="w-4 h-4 text-gray-600 dark:text-gray-300" strokeWidth={2} />
+                    </Link>
+                    <button onClick={() => deleteEvent(e._id)} className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                      <Trash2 className="w-4 h-4 text-red-500" strokeWidth={2} />
+                    </button>
                   </div>
                 </div>
               ))}
